@@ -10,36 +10,14 @@
         <p class="page-sub">El directorio se autocompleta al cargar un encargo.</p>
     </div>
     <div class="page-header-actions">
-        <button class="btn btn-primary" @onclick="() => New()">+ Nuevo cliente</button>
+        <button class="btn btn-primary" @onclick="New">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+            </svg>
+            Nuevo cliente
+        </button>
     </div>
 </div>
-
-<EditForm Model="@_form" OnValidSubmit="SaveAsync">
-    <DataAnnotationsValidator />
-    @if (_editing)
-    {
-        <div class="card" style="margin-bottom:1.1rem">
-            <div class="card-body">
-                <h2 class="card-title">@(_form.Id == 0 ? "Nuevo cliente" : "Editar cliente")</h2>
-                <div class="form-row">
-                    <div class="c-5">
-                        <label class="form-label" for="customerName">Nombre</label>
-                        <InputText id="customerName" class="form-control" @bind-Value="_form.Name" />
-                        <ValidationMessage For="() => _form.Name" />
-                    </div>
-                    <div class="c-4">
-                        <label class="form-label" for="customerPhone">Teléfono</label>
-                        <InputText id="customerPhone" class="form-control" @bind-Value="_form.Phone" />
-                    </div>
-                    <div class="c-3 align-self-end">
-                        <button type="submit" class="btn btn-primary">Guardar</button>
-                        <button type="button" class="btn btn-ghost" @onclick="Cancel">Cancelar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-</EditForm>
 
 @if (_customers.Count == 0)
 {
@@ -55,6 +33,7 @@
             </span>
             <h3>Sin clientes</h3>
             <p>También podés crear clientes al vuelo cuando cargás un encargo.</p>
+            <button class="btn btn-primary" @onclick="New">Nuevo cliente</button>
         </div>
     </div>
 }
@@ -75,8 +54,12 @@ else
                     <tr>
                         <td class="cell-strong">@c.Name</td>
                         <td class="table-muted">@c.Phone</td>
-                        <td class="num">
-                            <button class="btn btn-sm btn-outline" @onclick="() => Edit(c)">Editar</button>
+                        <td class="row-actions">
+                            <button class="btn btn-ghost btn-icon" @onclick="() => Edit(c)" title="Editar @c.Name" aria-label="Editar @c.Name">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                                </svg>
+                            </button>
                         </td>
                     </tr>
                 }
@@ -84,6 +67,25 @@ else
         </table>
     </div>
 }
+
+<Modal Title="@(_form.Id == 0 ? "Nuevo cliente" : "Editar cliente")" Visible="@_showModal" OnClose="Cancel">
+    <EditForm Model="@_form" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <div class="field">
+            <label class="form-label" for="customerName">Nombre</label>
+            <InputText id="customerName" class="form-control" @bind-Value="_form.Name" />
+            <ValidationMessage For="() => _form.Name" />
+        </div>
+        <div class="field">
+            <label class="form-label" for="customerPhone">Teléfono (opcional)</label>
+            <InputText id="customerPhone" class="form-control" @bind-Value="_form.Phone" />
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" @onclick="Cancel">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+    </EditForm>
+</Modal>
 
 @code {
     private sealed class CustomerForm
@@ -96,7 +98,7 @@ else
 
     private readonly List<Customer> _customers = [];
     private CustomerForm _form = new();
-    private bool _editing;
+    private bool _showModal;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -110,16 +112,16 @@ else
     private void New()
     {
         _form = new CustomerForm();
-        _editing = true;
+        _showModal = true;
     }
 
     private void Edit(Customer c)
     {
         _form = new CustomerForm { Id = c.Id, Name = c.Name, Phone = c.Phone };
-        _editing = true;
+        _showModal = true;
     }
 
-    private void Cancel() => _editing = false;
+    private void Cancel() => _showModal = false;
 
     private async Task SaveAsync()
     {
@@ -133,7 +135,7 @@ else
         customer.Name = _form.Name.Trim();
         customer.Phone = string.IsNullOrWhiteSpace(_form.Phone) ? null : _form.Phone.Trim();
         await db.SaveChangesAsync();
-        _editing = false;
+        _showModal = false;
         await LoadAsync();
     }
 }

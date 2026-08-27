@@ -1,0 +1,68 @@
+@inject IJSRuntime JS
+
+<div class="modal-overlay @(Visible ? "is-open" : "is-hidden")" @onclick="Close" @onkeydown="HandleKeyDown">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="@_titleId" tabindex="-1" @ref="_modalRef" @onclick:stopPropagation="true">
+        <div class="modal-header">
+            <h2 class="modal-title" id="@_titleId">@Title</h2>
+            <button type="button" class="btn btn-ghost btn-icon modal-close" aria-label="Cerrar" @onclick="Close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            @ChildContent
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ElementReference _modalRef;
+    private IJSObjectReference? _modalModule;
+    private readonly string _titleId = $"om-modal-{Guid.NewGuid():N}";
+    private bool _prevVisible;
+    private bool _wasOpen;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && RendererInfo.IsInteractive && _modalModule is null)
+        {
+            _modalModule = await JS.InvokeAsync<IJSObjectReference>("import",
+                "./Components/Shared/Modal.razor.js");
+        }
+
+        if (_modalModule is not null && Visible != _prevVisible)
+        {
+            _prevVisible = Visible;
+            if (Visible)
+            {
+                _wasOpen = true;
+                await _modalModule.InvokeVoidAsync("openModal", _modalRef);
+            }
+            else
+            {
+                _wasOpen = false;
+                await _modalModule.InvokeVoidAsync("closeModal", _modalRef);
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_wasOpen && _modalModule is not null)
+            await _modalModule.InvokeVoidAsync("closeModal", _modalRef);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await Close();
+    }
+
+    private async Task Close() => await OnClose.InvokeAsync();
+}
