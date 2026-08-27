@@ -20,13 +20,15 @@ hora límite de inicio, sin hacer cuentas mentales.
 - Blazor Web App — interactive **Server** render mode
 - EF Core 10 + Npgsql (PostgreSQL)
 - PostgreSQL v16 vía Docker Compose (desarrollo local)
-- Sin autenticación (uso personal/single-user por ahora)
+- Autenticación Clerk vía OpenID Connect (cookie auth, sign-in alojado en Clerk); single-tenant,
+  con claim del primer inicio de sesión (ver ADR-0001)
 
 ## Commands
 
 ```
 Build:   dotnet build
-Run:     dotnet run --project src/OrderManager.Web  (usa la connection string local)
+Run:     dotnet run --project src/OrderManager.Web  (usa la connection string local; requiere
+        las claves de Clerk en user-secrets — la app falla al arrancar si no están configuradas)
 DB up:   docker compose up -d db
 DB down: docker compose down
 Migrate: dotnet ef database update --project src/OrderManager.Web
@@ -89,14 +91,15 @@ public static class PrepSchedule
 
 - **Always:** validar `prepHours > 0` al guardar producto; validar `DeliveryAt` en el futuro;
   correr `dotnet build` + `dotnet test` antes de dar algo por terminado.
-- **Ask first:** cambios de esquema en producción, añadir dependencias, auth/multiusuario,
-  cambio del modelo de pago (señas/crédito).
+- **Ask first:** cambios de esquema en producción, añadir dependencias, multiusuario (scoping
+  de datos por usuario), cambio del modelo de pago (señas/crédito).
 - **Never:** commits de secrets; borrar migraciones sin revisar; editar el directorio de
   salida de build.
 
 ## Success Criteria
 
-- [ ] `docker compose up -d db` levanta Postgres y `dotnet run` arranca la app.
+- [ ] `docker compose up -d db` levanta Postgres y `dotnet run` arranca la app (con las claves
+      de Clerk en user-secrets).
 - [ ] CRUD de productos: nombre, precio, horas de preparación, activo.
 - [ ] Alta de encargo con cliente (nombre+teléfono), fecha/hora de entrega, N renglones
       (producto, cantidad, precio unitario) y monto total calculado.
@@ -113,5 +116,5 @@ public static class PrepSchedule
    entregado al repartir. → quitar si sobra.
 3. **Zona horaria local** del panadero; sin manejo de timezones.
 4. **Clientes**: tabla con nombre+teléfono; el form de encargo permite buscar o crear rápido.
-5. La app es single-user local (sin login). El `Monto cobrado` y la fecha/hora de entrega se
-   capturan en el encargo; la hora de entrega es día **y** hora (ej. 08:00).
+5. La app es single-user local (un solo propietario vía Clerk). El `Monto cobrado` y la fecha/hora
+   de entrega se capturan en el encargo; la hora de entrega es día **y** hora (ej. 08:00).
