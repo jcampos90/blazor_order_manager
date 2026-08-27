@@ -70,6 +70,10 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+app.MapPost("/signout", (HttpContext context) => SignOutHandler.SignOutAsync(context))
+    .RequireAuthorization();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

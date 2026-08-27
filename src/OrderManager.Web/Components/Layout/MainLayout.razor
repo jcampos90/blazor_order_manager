@@ -1,4 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Antiforgery
+@using Microsoft.AspNetCore.Http
+@inject IAntiforgery Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
 
 <div class="shell">
     <aside class="sidebar">
@@ -8,6 +12,13 @@
     <main class="main">
         <header class="topbar">
             <span class="topbar-date">@_today</span>
+            <div class="topbar-user">
+                <span class="topbar-identity">@_identity</span>
+                <form method="post" action="/signout">
+                    <input name="__RequestVerificationToken" type="hidden" value="@_antiforgeryToken" />
+                    <button type="submit" class="btn btn-ghost btn-sm">Cerrar sesión</button>
+                </form>
+            </div>
         </header>
 
         <div class="content">
@@ -23,10 +34,27 @@
 </div>
 
 @code {
-    private string _today = "";
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
 
-    protected override void OnInitialized()
+    private string _today = "";
+    private string _identity = "";
+    private string? _antiforgeryToken;
+
+    protected override async Task OnInitializedAsync()
     {
         _today = DateTime.Today.ToString("dddd, d 'de' MMMM", new System.Globalization.CultureInfo("es-AR")).ToUpper();
+
+        _antiforgeryToken ??= HttpContextAccessor.HttpContext is { } httpContext
+            ? Antiforgery.GetAndStoreTokens(httpContext).RequestToken
+            : null;
+
+        if (AuthenticationState is null)
+            return;
+
+        var state = await AuthenticationState;
+        _identity = state.User.FindFirst("name")?.Value
+            ?? state.User.FindFirst("email")?.Value
+            ?? "Usuario";
     }
 }
