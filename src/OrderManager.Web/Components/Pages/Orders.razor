@@ -71,12 +71,21 @@ else
                         <td>
                             <span class="badge @StatusBadge(o.Status)">@StatusLabel(o.Status)</span>
                         </td>
-                        <td class="num">
+                        <td class="row-actions">
                             @if (o.Status != OrderStatus.Delivered)
                             {
-                                <button class="btn btn-sm btn-success" @onclick="() => SetStatusAsync(o.Id, OrderStatus.Delivered)">Marcar entregado</button>
+                                <button class="btn btn-sm btn-success" @onclick="() => SetStatusAsync(o.Id, OrderStatus.Delivered)">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M20 6L9 17l-5-5" />
+                                    </svg>
+                                    Marcar entregado
+                                </button>
                             }
-                            <a class="btn btn-sm btn-outline" href="/encargos/@o.Id/editar">Editar</a>
+                            <a class="btn btn-sm btn-ghost btn-icon" href="/encargos/@o.Id/editar" aria-label="Editar" title="Editar">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                                </svg>
+                            </a>
                         </td>
                     </tr>
                 }

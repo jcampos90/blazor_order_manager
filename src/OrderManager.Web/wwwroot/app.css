@@ -613,6 +613,14 @@ tfoot td {
     color: var(--text-2);
 }
 
+.row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .5rem;
+    white-space: nowrap;
+}
+
 .table-muted {
     color: var(--text-2);
     font-size: .82rem;
