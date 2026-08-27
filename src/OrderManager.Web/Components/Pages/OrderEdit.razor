@@ -1,0 +1,419 @@
+@page "/encargos/nuevo"
+@page "/encargos/{Id:int}/editar"
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> Factory
+@inject NavigationManager Nav
+
+<PageTitle>@(_isNew ? "Nuevo encargo" : "Editar encargo")</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@(_isNew ? "Nuevo encargo" : "Editar encargo")</h1>
+        <p class="page-sub">
+            <a href="/encargos" class="btn-link">← Volver a encargos</a>
+        </p>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <div class="card"><div class="card-body">Cargando…</div></div>
+}
+else
+{
+    <EditForm Model="@_form" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Datos del encargo</h2>
+
+                <div class="form-row">
+                    <div class="c-5">
+                        <label class="form-label" for="customerSearch">Cliente</label>
+                        <div class="suggest-wrap">
+                            <input id="customerSearch" class="form-control" placeholder="Buscar cliente…"
+                                   value="@_customerQuery"
+                                   @oninput="CustomerQueryInput"
+                                   @onfocus="() => FilterCustomers()" />
+                            @if (_showSuggestions && _suggestions.Count > 0)
+                            {
+                                <ul class="suggest">
+                                    @foreach (var c in _suggestions)
+                                    {
+                                        <li @onmousedown="() => PickCustomer(c)">@c.Name @(string.IsNullOrEmpty(c.Phone) ? "" : $"({c.Phone})")</li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+                        <div class="form-row" style="margin-top:.75rem">
+                            <div class="c-6">
+                                <input class="form-control" placeholder="Nombre (si no existe)"
+                                       value="@_form.CustomerName" @oninput="CustomerNameInput" />
+                            </div>
+                            <div class="c-6">
+                                <input class="form-control" placeholder="Teléfono" value="@_form.CustomerPhone"
+                                       @oninput="e => _form.CustomerPhone = e.Value?.ToString()" />
+                            </div>
+                        </div>
+                        <ValidationMessage For="() => _form.CustomerName" />
+                    </div>
+
+                    <div class="c-3">
+                        <label class="form-label" for="deliveryDate">Entrega · día</label>
+                        <InputDate id="deliveryDate" class="form-control" @bind-Value="_form.DeliveryDate" />
+                        <ValidationMessage For="() => _form.DeliveryDate" />
+                    </div>
+
+                    <div class="c-2">
+                        <label class="form-label" for="deliveryTime">Entrega · hora</label>
+                        <input id="deliveryTime" type="time" class="form-control"
+                               value="@(_form.DeliveryTime?.ToString("HH:mm") ?? "")"
+                               @onchange="DeliveryTimeInput" />
+                    </div>
+
+                    <div class="c-2">
+                        <label class="form-label" for="status">Estado</label>
+                        <select id="status" class="form-select" @bind="_form.Status">
+                            @foreach (var s in Enum.GetValues<OrderStatus>())
+                            {
+                                <option value="@s">@StatusLabel(s)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top:1rem">
+                    <div class="c-8">
+                        <label class="form-label" for="note">Nota (opcional)</label>
+                        <input id="note" class="form-control" placeholder="Ej.: retirar por local, sin levadura…" @bind="_form.Note" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:.9rem">
+                    <h2 class="card-title" style="margin:0">Productos</h2>
+                    <button type="button" class="btn btn-ghost btn-sm" @onclick="AddLine">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                        Agregar producto
+                    </button>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger">@_error</div>
+                }
+
+                @if (_form.Lines.Count == 0)
+                {
+                    <p class="table-muted" style="margin:0">Todavía no hay productos. Agregá al menos uno.</p>
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:38%">Producto</th>
+                                    <th style="width:18%" class="num">Cantidad</th>
+                                    <th style="width:18%" class="num">Precio unit.</th>
+                                    <th style="width:16%" class="num">Subtotal</th>
+                                    <th style="width:10%"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var i = 0; i < _form.Lines.Count; i++)
+                                {
+                                    var line = _form.Lines[i];
+                                    var lineIndex = i;
+                                    <tr>
+                                        <td>
+                                            <select class="form-select form-control-sm" value="@line.ProductId"
+                                                    @onchange="e => SelectProductFromEvent(line, e)" aria-label="Producto">
+                                                <option value="0">— seleccionar —</option>
+                                                @foreach (var p in _activeProducts)
+                                                {
+                                                    <option value="@p.Id">@p.Name</option>
+                                                }
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" min="0" step="0.5" class="form-control form-control-sm"
+                                                   value="@line.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                   @oninput="e => line.Quantity = ParseQty(e.Value?.ToString())" aria-label="Cantidad" />
+                                        </td>
+                                        <td>
+                                            <input type="number" min="0" step="0.01" class="form-control form-control-sm"
+                                                   value="@line.UnitPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                   @oninput="e => line.UnitPrice = ParseQty(e.Value?.ToString())" aria-label="Precio unitario" />
+                                        </td>
+                                        <td class="num">@(line.Quantity * line.UnitPrice).ToString("C")</td>
+                                        <td class="num">
+                                            <button type="button" class="btn btn-ghost btn-icon" @onclick="() => RemoveLine(lineIndex)"
+                                                    aria-label="Quitar producto">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                                                    <path d="M6 6l12 12M18 6L6 18" />
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" style="text-align:right">Total del encargo</td>
+                                    <td class="num"><span class="line-total">@_form.Lines.Sum(l => l.Quantity * l.UnitPrice).ToString("C")</span></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                @(_isNew ? "Guardar encargo" : "Guardar cambios")
+            </button>
+            <button type="button" class="btn btn-ghost" @onclick="Cancel">Cancelar</button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private sealed class LineForm
+    {
+        public int ProductId { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+    }
+
+    private sealed class OrderForm
+    {
+        public string CustomerName { get; set; } = "";
+        public string? CustomerPhone { get; set; }
+        [Required(ErrorMessage = "Elegí el día de entrega")]
+        public DateOnly? DeliveryDate { get; set; }
+        [Required(ErrorMessage = "Elegí la hora de entrega")]
+        public TimeOnly? DeliveryTime { get; set; }
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
+        public string? Note { get; set; }
+        public List<LineForm> Lines { get; set; } = [];
+    }
+
+    private readonly List<Product> _activeProducts = [];
+    private List<Customer> _customers = [];
+    private List<Customer> _suggestions = [];
+    private OrderForm _form = new();
+    private int? _selectedCustomerId;
+    private string _customerQuery = "";
+    private bool _showSuggestions;
+    private bool _isNew = true;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _isNew = Id is null;
+        await using var db = await Factory.CreateDbContextAsync();
+        _activeProducts.AddRange(await db.Products.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
+        _customers = await db.Customers.OrderBy(c => c.Name).ToListAsync();
+
+        if (Id is not null)
+        {
+            var order = await db.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.Lines)
+                .FirstOrDefaultAsync(o => o.Id == Id.Value);
+            if (order is not null)
+            {
+                _selectedCustomerId = order.CustomerId;
+                _form.CustomerName = order.Customer!.Name;
+                _form.CustomerPhone = order.Customer.Phone;
+                _form.DeliveryDate = DateOnly.FromDateTime(order.DeliveryAt);
+                _form.DeliveryTime = TimeOnly.FromDateTime(order.DeliveryAt);
+                _form.Status = order.Status;
+                _form.Note = order.Note;
+                _form.Lines = order.Lines.Select(l => new LineForm
+                {
+                    ProductId = l.ProductId,
+                    Quantity = l.Quantity,
+                    UnitPrice = l.UnitPrice,
+                }).ToList();
+            }
+        }
+        _loading = false;
+    }
+
+    private void FilterCustomers()
+    {
+        var q = _customerQuery.Trim();
+        _suggestions = q.Length == 0
+            ? []
+            : _customers.Where(c => c.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)
+                                    || (c.Phone?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false))
+                .Take(8)
+                .ToList();
+        _showSuggestions = true;
+    }
+
+    private void CustomerQueryInput(ChangeEventArgs e)
+    {
+        _customerQuery = e.Value?.ToString() ?? "";
+        FilterCustomers();
+    }
+
+    private void PickCustomer(Customer c)
+    {
+        _selectedCustomerId = c.Id;
+        _customerQuery = c.Name;
+        _form.CustomerName = c.Name;
+        _form.CustomerPhone = c.Phone;
+        _showSuggestions = false;
+    }
+
+    private void CustomerNameInput(ChangeEventArgs e)
+    {
+        _form.CustomerName = e.Value?.ToString() ?? "";
+        _selectedCustomerId = null;
+    }
+
+    private void DeliveryTimeInput(ChangeEventArgs e)
+    {
+        if (TimeOnly.TryParse(e.Value?.ToString(), out var time))
+            _form.DeliveryTime = time;
+    }
+
+    private void Cancel() => Nav.NavigateTo("/encargos");
+
+    private void SelectProductFromEvent(LineForm line, ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var productId))
+        {
+            line.ProductId = productId;
+            var product = _activeProducts.FirstOrDefault(p => p.Id == productId);
+            if (product is not null)
+                line.UnitPrice = product.Price;
+        }
+    }
+
+    private void AddLine() => _form.Lines.Add(new LineForm());
+
+    private void RemoveLine(int index) => _form.Lines.RemoveAt(index);
+
+    private static decimal ParseQty(string? value) =>
+        decimal.TryParse(value, System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture, out var q) ? q : 0;
+
+    private static string StatusLabel(OrderStatus s) => s switch
+    {
+        OrderStatus.Pending => "Pendiente",
+        OrderStatus.InProduction => "En producción",
+        OrderStatus.Delivered => "Entregado",
+        _ => s.ToString(),
+    };
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+
+        if (_form.Lines.Count == 0 || _form.Lines.Any(l => l.ProductId == 0))
+        {
+            _error = "Agregá al menos un producto con producto seleccionado.";
+            return;
+        }
+        if (_form.Lines.Any(l => l.Quantity <= 0))
+        {
+            _error = "Las cantidades deben ser mayores a cero.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_form.CustomerName))
+        {
+            _error = "Indicá el nombre del cliente.";
+            return;
+        }
+
+        var deliveryAt = _form.DeliveryDate!.Value.ToDateTime(_form.DeliveryTime!.Value);
+        if (deliveryAt <= DateTime.Now)
+        {
+            _error = "La entrega debe ser en el futuro.";
+            return;
+        }
+
+        await using var db = await Factory.CreateDbContextAsync();
+
+        int customerId;
+        if (_selectedCustomerId is int selectedId)
+        {
+            customerId = selectedId;
+        }
+        else
+        {
+            var existing = await db.Customers
+                .FirstOrDefaultAsync(c => c.Name.ToLower() == _form.CustomerName.Trim().ToLower());
+            if (existing is not null)
+            {
+                customerId = existing.Id;
+            }
+            else
+            {
+                var customer = new Customer
+                {
+                    Name = _form.CustomerName.Trim(),
+                    Phone = string.IsNullOrWhiteSpace(_form.CustomerPhone) ? null : _form.CustomerPhone.Trim(),
+                };
+                db.Customers.Add(customer);
+                await db.SaveChangesAsync();
+                customerId = customer.Id;
+            }
+        }
+
+        var order = Id is null
+            ? new Order { CustomerId = customerId }
+            : await db.Orders.Include(o => o.Lines).FirstOrDefaultAsync(o => o.Id == Id.Value);
+
+        if (order is null)
+        {
+            _error = "No se encontró el encargo.";
+            return;
+        }
+
+        order.CustomerId = customerId;
+        order.DeliveryAt = deliveryAt;
+        order.Status = _form.Status;
+        order.Note = string.IsNullOrWhiteSpace(_form.Note) ? null : _form.Note.Trim();
+
+        if (Id is null)
+        {
+            db.Orders.Add(order);
+        }
+        else
+        {
+            db.OrderLines.RemoveRange(order.Lines);
+            order.Lines.Clear();
+        }
+
+        foreach (var line in _form.Lines)
+        {
+            order.Lines.Add(new OrderLine
+            {
+                ProductId = line.ProductId,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+            });
+        }
+
+        await db.SaveChangesAsync();
+        Nav.NavigateTo("/encargos");
+    }
+}

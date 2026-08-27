@@ -1,0 +1,139 @@
+@page "/clientes"
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> Factory
+
+<PageTitle>Clientes</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Clientes</h1>
+        <p class="page-sub">El directorio se autocompleta al cargar un encargo.</p>
+    </div>
+    <div class="page-header-actions">
+        <button class="btn btn-primary" @onclick="() => New()">+ Nuevo cliente</button>
+    </div>
+</div>
+
+<EditForm Model="@_form" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    @if (_editing)
+    {
+        <div class="card" style="margin-bottom:1.1rem">
+            <div class="card-body">
+                <h2 class="card-title">@(_form.Id == 0 ? "Nuevo cliente" : "Editar cliente")</h2>
+                <div class="form-row">
+                    <div class="c-5">
+                        <label class="form-label" for="customerName">Nombre</label>
+                        <InputText id="customerName" class="form-control" @bind-Value="_form.Name" />
+                        <ValidationMessage For="() => _form.Name" />
+                    </div>
+                    <div class="c-4">
+                        <label class="form-label" for="customerPhone">Teléfono</label>
+                        <InputText id="customerPhone" class="form-control" @bind-Value="_form.Phone" />
+                    </div>
+                    <div class="c-3 align-self-end">
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        <button type="button" class="btn btn-ghost" @onclick="Cancel">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</EditForm>
+
+@if (_customers.Count == 0)
+{
+    <div class="card">
+        <div class="empty">
+            <span class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+            </span>
+            <h3>Sin clientes</h3>
+            <p>También podés crear clientes al vuelo cuando cargás un encargo.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in _customers)
+                {
+                    <tr>
+                        <td class="cell-strong">@c.Name</td>
+                        <td class="table-muted">@c.Phone</td>
+                        <td class="num">
+                            <button class="btn btn-sm btn-outline" @onclick="() => Edit(c)">Editar</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private sealed class CustomerForm
+    {
+        public int Id { get; set; }
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        public string Name { get; set; } = "";
+        public string? Phone { get; set; }
+    }
+
+    private readonly List<Customer> _customers = [];
+    private CustomerForm _form = new();
+    private bool _editing;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        await using var db = await Factory.CreateDbContextAsync();
+        _customers.Clear();
+        _customers.AddRange(await db.Customers.OrderBy(c => c.Name).ToListAsync());
+    }
+
+    private void New()
+    {
+        _form = new CustomerForm();
+        _editing = true;
+    }
+
+    private void Edit(Customer c)
+    {
+        _form = new CustomerForm { Id = c.Id, Name = c.Name, Phone = c.Phone };
+        _editing = true;
+    }
+
+    private void Cancel() => _editing = false;
+
+    private async Task SaveAsync()
+    {
+        await using var db = await Factory.CreateDbContextAsync();
+        var customer = await db.Customers.FindAsync(_form.Id);
+        if (customer is null)
+        {
+            customer = new Customer { Name = _form.Name.Trim() };
+            db.Customers.Add(customer);
+        }
+        customer.Name = _form.Name.Trim();
+        customer.Phone = string.IsNullOrWhiteSpace(_form.Phone) ? null : _form.Phone.Trim();
+        await db.SaveChangesAsync();
+        _editing = false;
+        await LoadAsync();
+    }
+}

@@ -1,0 +1,179 @@
+@page "/productos"
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> Factory
+
+<PageTitle>Productos</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Productos</h1>
+        <p class="page-sub">Cada producto define sus horas de preparación: la app calcula cuándo hay que empezar.</p>
+    </div>
+    <div class="page-header-actions">
+        <button class="btn btn-primary" @onclick="() => New()">+ Nuevo producto</button>
+    </div>
+</div>
+
+<EditForm Model="@_form" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    @if (_editing)
+    {
+        <div class="card" style="margin-bottom:1.1rem">
+            <div class="card-body">
+                <h2 class="card-title">@(_form.Id == 0 ? "Nuevo producto" : "Editar producto")</h2>
+                <div class="form-row">
+                    <div class="c-5">
+                        <label class="form-label" for="productName">Nombre</label>
+                        <InputText id="productName" class="form-control" @bind-Value="_form.Name" />
+                        <ValidationMessage For="() => _form.Name" />
+                    </div>
+                    <div class="c-2">
+                        <label class="form-label" for="productPrice">Precio</label>
+                        <InputNumber id="productPrice" class="form-control" @bind-Value="_form.Price" />
+                        <ValidationMessage For="() => _form.Price" />
+                    </div>
+                    <div class="c-2">
+                        <label class="form-label" for="productPrep">Horas de prep.</label>
+                        <InputNumber id="productPrep" class="form-control" @bind-Value="_form.PrepHours" />
+                        <ValidationMessage For="() => _form.PrepHours" />
+                    </div>
+                    <div class="c-2 align-self-end">
+                        <label class="form-label" style="display:flex; align-items:center; gap:.5rem; margin:0; font-weight:500; text-transform:none; letter-spacing:0; font-size:.9rem">
+                            <InputCheckbox class="form-check-input" @bind-Value="_form.IsActive" id="isActive" />
+                            Activo
+                        </label>
+                    </div>
+                    <div class="c-1 align-self-end" style="text-align:right">
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</EditForm>
+
+@if (_products.Count == 0)
+{
+    <div class="card">
+        <div class="empty">
+            <span class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2z" />
+                    <path d="M3.3 8.3 12 13.1l8.7-4.8" />
+                    <path d="M12 22.1V13.1" />
+                </svg>
+            </span>
+            <h3>Sin productos</h3>
+            <p>Creá tu primer producto con su tiempo de preparación.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th class="num">Precio</th>
+                    <th class="num">Horas de prep.</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in _products)
+                {
+                    <tr class="@(p.IsActive ? "" : "row-muted")">
+                        <td class="cell-strong">@p.Name</td>
+                        <td class="num">@p.Price.ToString("C")</td>
+                        <td class="num">@p.PrepHours</td>
+                        <td>
+                            <span class="badge @(p.IsActive ? "badge-delivered" : "")">@(p.IsActive ? "Activo" : "Inactivo")</span>
+                        </td>
+                        <td class="num">
+                            <button class="btn btn-sm btn-outline" @onclick="() => Edit(p)">Editar</button>
+                            <button class="btn btn-sm btn-ghost" @onclick="() => ToggleActiveAsync(p)">@(p.IsActive ? "Desactivar" : "Activar")</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private sealed class ProductForm
+    {
+        public int Id { get; set; }
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        public string Name { get; set; } = "";
+        [Range(0.01, 999999, ErrorMessage = "Precio inválido")]
+        public decimal Price { get; set; }
+        [Range(1, 720, ErrorMessage = "Debe ser al menos 1 hora")]
+        public int PrepHours { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
+    private readonly List<Product> _products = [];
+    private ProductForm _form = new();
+    private bool _editing;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        await using var db = await Factory.CreateDbContextAsync();
+        _products.Clear();
+        _products.AddRange(await db.Products.OrderBy(p => p.Name).ToListAsync());
+    }
+
+    private void New()
+    {
+        _form = new ProductForm();
+        _editing = true;
+    }
+
+    private void Edit(Product p)
+    {
+        _form = new ProductForm
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Price = p.Price,
+            PrepHours = p.PrepHours,
+            IsActive = p.IsActive,
+        };
+        _editing = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        await using var db = await Factory.CreateDbContextAsync();
+        var product = await db.Products.FindAsync(_form.Id);
+        if (product is null)
+        {
+            product = new Product { Name = _form.Name.Trim() };
+            db.Products.Add(product);
+        }
+        product.Name = _form.Name.Trim();
+        product.Price = _form.Price;
+        product.PrepHours = _form.PrepHours;
+        product.IsActive = _form.IsActive;
+        await db.SaveChangesAsync();
+        _editing = false;
+        await LoadAsync();
+    }
+
+    private async Task ToggleActiveAsync(Product p)
+    {
+        await using var db = await Factory.CreateDbContextAsync();
+        var product = await db.Products.FindAsync(p.Id);
+        if (product is not null)
+        {
+            product.IsActive = !product.IsActive;
+            await db.SaveChangesAsync();
+        }
+        await LoadAsync();
+    }
+}

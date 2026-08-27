@@ -1,0 +1,189 @@
+@page "/encargos"
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> Factory
+@inject NavigationManager Nav
+
+<PageTitle>Encargos</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Encargos</h1>
+        <p class="page-sub">@_orders.Count encargo@(_orders.Count == 1 ? "" : "s") @_filterLabel</p>
+    </div>
+    <div class="page-header-actions">
+        <a class="btn btn-primary" href="/encargos/nuevo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+            </svg>
+            Nuevo encargo
+        </a>
+    </div>
+</div>
+
+<div class="chips">
+    <button class="chip @(Filter == null && _dateFilter == "" ? "active" : "")" @onclick="() => SetFilter(null)">Todos</button>
+    <button class="chip @(Filter == "hoy" ? "active" : "")" @onclick="FilterHoy">Hoy</button>
+    <button class="chip @(Filter == "manana" ? "active" : "")" @onclick="FilterManana">Mañana</button>
+    <input type="date" class="chip chip-date" value="@_dateFilter" @onchange="e => SetDate(e.Value?.ToString())" aria-label="Filtrar por fecha" />
+</div>
+
+@if (_orders.Count == 0)
+{
+    <div class="card">
+        <div class="empty">
+            <span class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="5" y="3.5" width="14" height="17" rx="2" />
+                    <path d="M9 3.5V2.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
+                    <path d="M9.5 11.5l1.8 1.8 3.2-3.4" />
+                </svg>
+            </span>
+            <h3>No hay encargos</h3>
+            <p>No hay encargos para este filtro. Cargá uno nuevo y aparece acá.</p>
+            <a class="btn btn-primary" href="/encargos/nuevo">Nuevo encargo</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Entrega</th>
+                    <th class="num">Total</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var o in _orders)
+                {
+                    var soon = o.Status != OrderStatus.Delivered && o.DeliveryAt <= DateTime.Now.AddHours(24);
+                    <tr class="@(o.Status == OrderStatus.Delivered ? "row-muted" : "")">
+                        <td>
+                            <span class="cell-strong">@o.CustomerName</span><br />
+                            <span class="table-muted">@o.CustomerPhone</span>
+                        </td>
+                        <td class="@(soon ? "cell-strong" : "")">@o.DeliveryAt.ToString("ddd d MMM · HH:mm")</td>
+                        <td class="num">@o.Total.ToString("C")</td>
+                        <td>
+                            <span class="badge @StatusBadge(o.Status)">@StatusLabel(o.Status)</span>
+                        </td>
+                        <td class="num">
+                            @if (o.Status != OrderStatus.Delivered)
+                            {
+                                <button class="btn btn-sm btn-success" @onclick="() => SetStatusAsync(o.Id, OrderStatus.Delivered)">Marcar entregado</button>
+                            }
+                            <a class="btn btn-sm btn-outline" href="/encargos/@o.Id/editar">Editar</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private sealed record OrderRow(
+        int Id, string CustomerName, string? CustomerPhone, DateTime DeliveryAt,
+        OrderStatus Status, decimal Total);
+
+    private List<OrderRow> _orders = [];
+    private string? Filter;
+    private string _dateFilter = "";
+    private string _filterLabel = "para todos los días";
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private void SetFilter(string? f)
+    {
+        Filter = f;
+        _dateFilter = "";
+        _ = LoadAsync();
+    }
+
+    private void FilterHoy() => SetFilter("hoy");
+
+    private void FilterManana() => SetFilter("manana");
+
+    private void SetDate(string? value)
+    {
+        Filter = null;
+        _dateFilter = value ?? "";
+        _ = LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await using var db = await Factory.CreateDbContextAsync();
+
+        var query = db.Orders.AsNoTracking()
+            .Include(o => o.Customer)
+            .Include(o => o.Lines)
+            .AsQueryable();
+
+        var today = DateTime.Now.Date;
+        if (Filter == "hoy")
+        {
+            query = query.Where(o => o.DeliveryAt >= today && o.DeliveryAt < today.AddDays(1));
+            _filterLabel = "para hoy";
+        }
+        else if (Filter == "manana")
+        {
+            var tomorrow = today.AddDays(1);
+            query = query.Where(o => o.DeliveryAt >= tomorrow && o.DeliveryAt < tomorrow.AddDays(1));
+            _filterLabel = "para mañana";
+        }
+        else if (DateOnly.TryParse(_dateFilter, out var d))
+        {
+            var start = d.ToDateTime(TimeOnly.MinValue);
+            query = query.Where(o => o.DeliveryAt >= start && o.DeliveryAt < start.AddDays(1));
+            _filterLabel = $"para el {d:dd/MM}";
+        }
+        else
+        {
+            _filterLabel = "para todos los días";
+        }
+
+        _orders = await query
+            .OrderBy(o => o.DeliveryAt)
+            .Select(o => new OrderRow(
+                o.Id,
+                o.Customer!.Name,
+                o.Customer!.Phone,
+                o.DeliveryAt,
+                o.Status,
+                o.Lines.Sum(l => l.Quantity * l.UnitPrice)))
+            .ToListAsync();
+    }
+
+    private async Task SetStatusAsync(int orderId, OrderStatus status)
+    {
+        await using var db = await Factory.CreateDbContextAsync();
+        var order = await db.Orders.FindAsync(orderId);
+        if (order is not null)
+        {
+            order.Status = status;
+            await db.SaveChangesAsync();
+        }
+        await LoadAsync();
+    }
+
+    private static string StatusLabel(OrderStatus s) => s switch
+    {
+        OrderStatus.Pending => "Pendiente",
+        OrderStatus.InProduction => "En producción",
+        OrderStatus.Delivered => "Entregado",
+        _ => s.ToString(),
+    };
+
+    private static string StatusBadge(OrderStatus s) => s switch
+    {
+        OrderStatus.Pending => "badge-pending",
+        OrderStatus.InProduction => "badge-production",
+        OrderStatus.Delivered => "badge-delivered",
+        _ => "",
+    };
+}

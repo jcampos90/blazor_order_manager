@@ -1,0 +1,32 @@
+﻿@inherits LayoutComponentBase
+
+<div class="shell">
+    <aside class="sidebar">
+        <NavMenu />
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <span class="topbar-date">@_today</span>
+        </header>
+
+        <div class="content">
+            @Body
+        </div>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ocurrió un error inesperado.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss">✕</span>
+</div>
+
+@code {
+    private string _today = "";
+
+    protected override void OnInitialized()
+    {
+        _today = DateTime.Today.ToString("dddd, d 'de' MMMM", new System.Globalization.CultureInfo("es-AR")).ToUpper();
+    }
+}
