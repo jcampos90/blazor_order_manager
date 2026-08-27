@@ -998,17 +998,112 @@ textarea.form-control {
 
 /* ============ Order editor ============ */
 
-.line-total {
+.editor-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 330px;
+    gap: 1.1rem;
+    align-items: start;
+}
+
+.editor-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    min-width: 0;
+}
+
+.editor-side {
+    position: sticky;
+    top: 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    max-height: calc(100vh - 5rem);
+    overflow-y: auto;
+}
+
+.editor-main .card + .card,
+.editor-side .card + .card {
+    margin-top: 0;
+}
+
+.card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: .9rem;
+}
+
+.card-head .card-title {
+    margin: 0;
+}
+
+.editor-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.editor-total-value {
     font-family: var(--font-display);
-    font-size: 1.25rem;
+    font-size: 1.5rem;
     font-weight: 600;
 }
+
+.summary-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.summary-name {
+    font-weight: 600;
+    font-size: .92rem;
+}
+
+.summary-qty {
+    color: var(--text-2);
+    font-weight: 400;
+}
+
+.summary-time {
+    font-family: var(--font-display);
+    font-size: .92rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.col-product { width: 38%; }
+.col-qty { width: 16%; }
+.col-price { width: 18%; }
+.col-subtotal { width: 16%; }
+.col-actions { width: 12%; }
 
 .form-actions {
     display: flex;
     gap: .6rem;
     margin-top: 1.2rem;
 }
+
+/* ============ Utilities ============ */
+
+.m-0 { margin: 0; }
+.mt-3 { margin-top: .75rem; }
 
 /* ============ Error UI ============ */
 
@@ -1095,6 +1190,16 @@ textarea.form-control {
     .form-row .c-5, .form-row .c-4, .form-row .c-3,
     .form-row .c-2, .form-row .c-1, .form-row .c-6, .form-row .c-8, .form-row .c-12 {
         grid-column: span 1;
+    }
+
+    .editor-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .editor-side {
+        position: static;
+        max-height: none;
+        overflow: visible;
     }
 
     .stats {
