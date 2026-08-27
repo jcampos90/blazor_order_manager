@@ -21,6 +21,13 @@ var authOptions = builder.Configuration
     .GetSection(ClerkAuthOptions.SectionName)
     .Get<ClerkAuthOptions>() ?? new ClerkAuthOptions();
 
+builder.Services.Configure<OwnerAuthOptions>(
+    builder.Configuration.GetSection(OwnerAuthOptions.SectionName));
+
+var ownerOptions = builder.Configuration
+    .GetSection(OwnerAuthOptions.SectionName)
+    .Get<OwnerAuthOptions>() ?? new OwnerAuthOptions();
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -33,6 +40,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization(AuthorizationSetup.Configure);
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<OwnerService>();
 
 var app = builder.Build();
 
@@ -56,6 +64,7 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+app.UseMiddleware<OwnerGateMiddleware>();
 app.UseAuthorization();
 
 app.UseAntiforgery();
@@ -68,6 +77,17 @@ using (var scope = app.Services.CreateScope())
 {
     var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
     await DbSeeder.SeedAsync(factory);
+
+    if (!ownerOptions.AllowClaim)
+    {
+        var ownerService = scope.ServiceProvider.GetRequiredService<OwnerService>();
+        if (await ownerService.GetOwnerIdAsync() is null)
+        {
+            throw new InvalidOperationException(
+                "Auth:AllowClaim is disabled but no owner is recorded. Enable Auth:AllowClaim " +
+                "and sign in once to claim the owner, then disable it for production.");
+        }
+    }
 }
 
 app.Run();
