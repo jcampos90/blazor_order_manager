@@ -27,9 +27,11 @@
         <div class="skeleton skeleton-stat"><span class="skeleton skeleton-sm" style="width:45%"></span><span class="skeleton skeleton-title" style="width:60%"></span></div>
     </div>
     <div class="table-wrap">
-        <div style="padding:1.3rem 1.4rem; display:flex; flex-direction:column; gap:.9rem">
-            @for (var i = 0; i < 4; i++)
+        <div style="padding:1.15rem 1.4rem; display:flex; flex-direction:column; gap:.9rem">
+            @for (var i = 0; i < 3; i++)
             {
+                <span class="skeleton skeleton-line" style="width:26%"></span>
+                <span class="skeleton skeleton-line" style="width:100%"></span>
                 <span class="skeleton skeleton-line" style="width:100%"></span>
             }
         </div>
@@ -83,22 +85,32 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in _items)
+                @foreach (var group in _groups)
                 {
-                    var overdue = item.Overdue(_now);
-                    <tr class="@(overdue ? "row-overdue" : "")">
-                        <td class="cell-strong">
-                            @item.StartBy.ToString("ddd d MMM · HH:mm")
-                            @if (overdue)
-                            {
-                                <span class="badge badge-overdue">Atrasado</span>
-                            }
-                        </td>
-                        <td>@item.ProductName</td>
-                        <td class="num">@item.Quantity</td>
-                        <td>@item.CustomerName</td>
-                        <td class="table-muted">@item.DeliveryAt.ToString("ddd d MMM · HH:mm")</td>
+                    var groupOverdue = group.Bucket == UrgencyBucket.Overdue;
+                    <tr class="urgency-group @(groupOverdue ? "urgency-group-danger" : "")">
+                        <th colspan="5">
+                            <span class="urgency-group-label">@group.Label</span>
+                            <span class="badge @(groupOverdue ? "badge-count badge-count-danger" : "badge-count")">@group.Items.Count</span>
+                        </th>
                     </tr>
+                    @foreach (var item in group.Items)
+                    {
+                        var overdue = item.Bucket(_now) == UrgencyBucket.Overdue;
+                        <tr class="@(overdue ? "row-overdue" : "")">
+                            <td class="cell-strong">
+                                @item.StartBy.ToString("ddd d MMM · HH:mm")
+                                @if (overdue)
+                                {
+                                    <span class="badge badge-overdue">Atrasado</span>
+                                }
+                            </td>
+                            <td>@item.ProductName</td>
+                            <td class="num">@item.Quantity</td>
+                            <td>@item.CustomerName</td>
+                            <td class="table-muted">@item.DeliveryAt.ToString("ddd d MMM · HH:mm")</td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>
@@ -106,7 +118,19 @@ else
 }
 
 @code {
+    private sealed record UrgencyGroup(UrgencyBucket Bucket, string Label, IReadOnlyList<PrepItem> Items);
+
+    private static readonly (UrgencyBucket Bucket, string Label)[] BucketOrder =
+    [
+        (UrgencyBucket.Overdue, "Atrasados"),
+        (UrgencyBucket.Now, "Ahora"),
+        (UrgencyBucket.Today, "Hoy"),
+        (UrgencyBucket.Tomorrow, "Mañana"),
+        (UrgencyBucket.Upcoming, "Próximos"),
+    ];
+
     private IReadOnlyList<PrepItem> _items = [];
+    private IReadOnlyList<UrgencyGroup> _groups = [];
     private DateTime _now;
     private int _overdueCount;
     private int _todayCount;
@@ -120,6 +144,15 @@ else
         _overdueCount = _items.Count(i => i.Overdue(_now));
         _todayCount = _items.Count(i => i.StartBy.Date == _now.Date);
         _deliveryTodayCount = _items.Count(i => i.DeliveryAt.Date == _now.Date);
+
+        var groups = new List<UrgencyGroup>();
+        foreach (var (bucket, label) in BucketOrder)
+        {
+            var items = _items.Where(i => i.Bucket(_now) == bucket).ToList();
+            if (items.Count > 0)
+                groups.Add(new UrgencyGroup(bucket, label, items));
+        }
+        _groups = groups;
         _loading = false;
     }
 }

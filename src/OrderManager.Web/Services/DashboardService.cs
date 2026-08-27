@@ -15,6 +15,8 @@ public sealed record PrepItem(
     DateTime StartBy)
 {
     public bool Overdue(DateTime now) => PrepSchedule.IsOverdue(StartBy, now);
+
+    public UrgencyBucket Bucket(DateTime now) => UrgencyBuckets.Classify(StartBy, now);
 }
 
 public class DashboardService(IDbContextFactory<AppDbContext> factory)

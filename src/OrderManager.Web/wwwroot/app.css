@@ -673,6 +673,48 @@ tfoot td {
     background: var(--on-accent);
 }
 
+.badge-count {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-2);
+    min-width: 1.7rem;
+    justify-content: center;
+}
+
+.badge-count::before {
+    display: none;
+}
+
+.badge-count-danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: var(--on-accent);
+}
+
+/* ============ Urgency groups (dashboard) ============ */
+
+.urgency-group th {
+    text-align: left;
+    font-family: var(--font-display);
+    font-size: .95rem;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--text);
+    padding: .72rem 1.15rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+}
+
+.urgency-group:first-of-type th {
+    border-top: none;
+}
+
+.urgency-group-danger th {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
 /* ============ Chips ============ */
 
 .chips {
