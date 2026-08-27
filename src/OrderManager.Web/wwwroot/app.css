@@ -422,6 +422,27 @@ a.btn {
     text-decoration: none;
 }
 
+.btn-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: pointer;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: color .14s ease;
+}
+
+.btn-link:hover {
+    color: var(--primary-strong);
+}
+
+.btn-link:active {
+    transform: translateY(1px);
+}
+
 /* ============ Cards ============ */
 
 .card {
@@ -679,6 +700,10 @@ tfoot td {
     color: var(--primary);
 }
 
+.chip:active {
+    transform: translateY(1px);
+}
+
 .chip.active {
     background: var(--primary);
     border-color: var(--primary);
@@ -745,6 +770,7 @@ textarea.form-control {
     gap: 1rem;
 }
 
+.form-row .c-1 { grid-column: span 1; }
 .form-row .c-5 { grid-column: span 5; }
 .form-row .c-4 { grid-column: span 4; }
 .form-row .c-3 { grid-column: span 3; }
@@ -752,6 +778,10 @@ textarea.form-control {
 .form-row .c-6 { grid-column: span 6; }
 .form-row .c-8 { grid-column: span 8; }
 .form-row .c-12 { grid-column: span 12; }
+
+.align-self-end {
+    align-self: end;
+}
 
 .validation-message {
     color: var(--danger);
@@ -789,6 +819,84 @@ textarea.form-control {
 
 .suggest li:hover {
     background: var(--surface-2);
+}
+
+/* ============ Skeleton loading ============ */
+
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+}
+
+.skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 55%, transparent), transparent);
+    animation: skeleton-shimmer 1.4s infinite;
+}
+
+@keyframes skeleton-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.skeleton-line {
+    height: .9rem;
+    border-radius: 6px;
+}
+
+.skeleton-title {
+    height: 1.35rem;
+    border-radius: 8px;
+}
+
+.skeleton-sm {
+    height: .8rem;
+}
+
+.skeleton-btn {
+    width: 7.5rem;
+    height: 2.35rem;
+    border-radius: var(--radius-sm);
+}
+
+.skeleton-card {
+    padding: 1.3rem 1.4rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+}
+
+.skeleton-stat {
+    padding: 1.05rem 1.2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+}
+
+.skeleton-table .skeleton-line {
+    width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton::after {
+        animation: none;
+        transform: none;
+        background: color-mix(in srgb, var(--surface) 55%, transparent);
+    }
 }
 
 /* ============ Empty state ============ */
@@ -935,7 +1043,7 @@ textarea.form-control {
     }
 
     .form-row .c-5, .form-row .c-4, .form-row .c-3,
-    .form-row .c-2, .form-row .c-6, .form-row .c-8, .form-row .c-12 {
+    .form-row .c-2, .form-row .c-1, .form-row .c-6, .form-row .c-8, .form-row .c-12 {
         grid-column: span 1;
     }
 

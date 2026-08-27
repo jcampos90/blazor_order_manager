@@ -17,7 +17,12 @@
 
 @if (_loading)
 {
-    <div class="card"><div class="card-body">Cargando…</div></div>
+    <div class="skeleton skeleton-card">
+        <span class="skeleton skeleton-title" style="width:30%"></span>
+        <span class="skeleton skeleton-line" style="width:100%"></span>
+        <span class="skeleton skeleton-line" style="width:100%"></span>
+        <span class="skeleton skeleton-line" style="width:70%"></span>
+    </div>
 }
 else
 {

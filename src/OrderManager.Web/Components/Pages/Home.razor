@@ -21,7 +21,19 @@
 
 @if (_loading)
 {
-    <div class="card"><div class="card-body">Cargando producción…</div></div>
+    <div class="stats">
+        <div class="skeleton skeleton-stat"><span class="skeleton skeleton-sm" style="width:45%"></span><span class="skeleton skeleton-title" style="width:60%"></span></div>
+        <div class="skeleton skeleton-stat"><span class="skeleton skeleton-sm" style="width:45%"></span><span class="skeleton skeleton-title" style="width:60%"></span></div>
+        <div class="skeleton skeleton-stat"><span class="skeleton skeleton-sm" style="width:45%"></span><span class="skeleton skeleton-title" style="width:60%"></span></div>
+    </div>
+    <div class="table-wrap">
+        <div style="padding:1.3rem 1.4rem; display:flex; flex-direction:column; gap:.9rem">
+            @for (var i = 0; i < 4; i++)
+            {
+                <span class="skeleton skeleton-line" style="width:100%"></span>
+            }
+        </div>
+    </div>
 }
 else if (_items.Count == 0)
 {
