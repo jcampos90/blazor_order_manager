@@ -1,4 +1,8 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
+using OrderManager.Web.Auth;
 using OrderManager.Web.Components;
 using OrderManager.Web.Data;
 using OrderManager.Web.Services;
@@ -13,7 +17,33 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<DashboardService>();
 
+var authOptions = builder.Configuration
+    .GetSection(ClerkAuthOptions.SectionName)
+    .Get<ClerkAuthOptions>() ?? new ClerkAuthOptions();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+})
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme)
+.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, oidc =>
+    OpenIdConnectSetup.Configure(authOptions, oidc));
+
+builder.Services.AddAuthorization(AuthorizationSetup.Configure);
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddHttpContextAccessor();
+
 var app = builder.Build();
+
+if (string.IsNullOrWhiteSpace(authOptions.Authority)
+    || string.IsNullOrWhiteSpace(authOptions.ClientId)
+    || string.IsNullOrWhiteSpace(authOptions.ClientSecret))
+{
+    throw new InvalidOperationException(
+        "Clerk OIDC is not configured. Set Auth:Oidc:Authority, Auth:Oidc:ClientId and " +
+        "Auth:Oidc:ClientSecret via `dotnet user-secrets set` before starting the app.");
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -24,6 +54,9 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseAntiforgery();
 
