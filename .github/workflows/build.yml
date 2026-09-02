@@ -1,0 +1,52 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main, development, staging]
+  pull_request:
+    branches: [main, development, staging]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore
+
+      # - name: Architecture Tests
+      #   run: dotnet test tests/ArchitectureTests/ArchitectureTests.csproj --logger "trx;LogFileName=architecture.trx"
+
+      - name: All Tests
+        run: dotnet test --no-build --logger "trx;LogFileName=results.trx"
+
+      - name: Install EF tools
+        run: dotnet tool install --global dotnet-ef
+
+      # - name: Generate migration scripts
+      #   run: |
+      #     mkdir artifacts
+      #     for mod in "Billing BillingDbContext" "Identity IdentityDbContext" "Features FeaturesDbContext"; do
+      #       set -- $mod
+      #       dotnet ef migrations script --idempotent \
+      #         --project src/$1/$1.Infrastructure \
+      #         --startup-project src/Api/MySaaS.Api \
+      #         --context $2 \
+      #         -o artifacts/$1-migrations.sql
+      #     done
+
+      # - name: Upload migration scripts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: migrations
+      #     path: artifacts/
