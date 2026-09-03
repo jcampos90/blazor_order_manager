@@ -4,10 +4,10 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Update `SignOutHandler` to sign out of `IdentityConstants.ApplicationScheme` only (single sign-out)
-- [ ] Update `SignOutHandlerTests` to verify single cookie sign-out instead of dual sign-out
-- [ ] Remove test assertions for OIDC scheme sign-out
-- [ ] `dotnet build` passes
-- [ ] `dotnet test` passes
+- [x] Update `SignOutHandler` to sign out of `IdentityConstants.ApplicationScheme` only (single sign-out)
+- [x] Update `SignOutHandlerTests` to verify single cookie sign-out instead of dual sign-out
+- [x] Remove test assertions for OIDC scheme sign-out
+- [x] `dotnet build` passes
+- [x] `dotnet test` passes
