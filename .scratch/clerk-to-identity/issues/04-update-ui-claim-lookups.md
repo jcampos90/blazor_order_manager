@@ -4,9 +4,9 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Update `MainLayout.razor` claim lookup to use `ClaimTypes.Name` and `ClaimTypes.Email` instead of raw `"name"` and `"email"` strings
-- [ ] Verify the header displays the signed-in user's name correctly
-- [ ] `dotnet build` passes
-- [ ] `dotnet test` passes
+- [x] Update `MainLayout.razor` claim lookup to use `ClaimTypes.Name` and `ClaimTypes.Email` instead of raw `"name"` and `"email"` strings
+- [x] Verify the header displays the signed-in user's name correctly
+- [x] `dotnet build` passes
+- [x] `dotnet test` passes

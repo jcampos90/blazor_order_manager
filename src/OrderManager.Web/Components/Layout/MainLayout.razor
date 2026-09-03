@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Antiforgery
 @using Microsoft.AspNetCore.Http
 @using Microsoft.JSInterop
+@using System.Security.Claims
 @inject IAntiforgery Antiforgery
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IJSRuntime JS
@@ -81,8 +82,8 @@
             return;
 
         var state = await AuthenticationState;
-        _identity = state.User.FindFirst("name")?.Value
-            ?? state.User.FindFirst("email")?.Value
+        _identity = state.User.FindFirst(ClaimTypes.Name)?.Value
+            ?? state.User.FindFirst(ClaimTypes.Email)?.Value
             ?? "Usuario";
     }
 }
