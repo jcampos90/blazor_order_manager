@@ -4,11 +4,11 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Update `CONTEXT.md`: change "signed in via Clerk" to "signed in via ASP.NET Core Identity"
-- [ ] Update `README.md`: remove Clerk user-secrets setup, document seed credentials (`admin@ordermanager.local` / `Admin123!`), document Identity configuration
-- [ ] Create `docs/adr/0002-aspnet-core-identity-local-auth.md` superseding ADR-0001, recording the decision to use ASP.NET Core Identity with role-based owner gate
-- [ ] Verify no remaining Clerk references in documentation
-- [ ] `dotnet build` passes
-- [ ] `dotnet test` passes
+- [x] Update `CONTEXT.md`: change "signed in via Clerk" to "signed in via ASP.NET Core Identity"
+- [x] Update `README.md`: remove Clerk user-secrets setup, document seed credentials (`admin@ordermanager.local` / `Admin123!`), document Identity configuration
+- [x] Create `docs/adr/0002-aspnet-core-identity-local-auth.md` superseding ADR-0001, recording the decision to use ASP.NET Core Identity with role-based owner gate
+- [x] Verify no remaining Clerk references in documentation
+- [x] `dotnet build` passes
+- [x] `dotnet test` passes

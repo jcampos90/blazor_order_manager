@@ -4,10 +4,10 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Delete `Models/AppOwner.cs`
-- [ ] Remove `AppOwners` DbSet and its `OnModelCreating` configuration from `AppDbContext`
-- [ ] Verify no remaining references to `AppOwner` or `ClerkUserId` in the codebase
-- [ ] `dotnet build` passes
-- [ ] `dotnet test` passes
+- [x] Delete `Models/AppOwner.cs`
+- [x] Remove `AppOwners` DbSet and its `OnModelCreating` configuration from `AppDbContext`
+- [x] Verify no remaining references to `AppOwner` or `ClerkUserId` in the codebase
+- [x] `dotnet build` passes
+- [x] `dotnet test` passes

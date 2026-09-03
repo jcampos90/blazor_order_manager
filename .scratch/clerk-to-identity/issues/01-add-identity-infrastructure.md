@@ -4,14 +4,14 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Add `Microsoft.AspNetCore.Identity.EntityFrameworkCore` NuGet package
-- [ ] Create `ApplicationDbContext` extending `IdentityDbContext<IdentityUser>`
-- [ ] Register `ApplicationDbContext` in `Program.cs` using the existing PostgreSQL connection string
-- [ ] Register Identity services (`AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders()`) — do NOT change the authentication scheme yet
-- [ ] Configure Identity options: `RequireConfirmedEmail = false`, password policy (RequiredLength 6, RequireDigit/Lowercase/Uppercase/NonAlphanumeric all true)
-- [ ] Create EF Core migration that adds ASP.NET Core Identity tables (does not touch `AppOwners`)
-- [ ] `dotnet build` passes
-- [ ] `dotnet test` passes (existing Clerk tests still work)
-- [ ] App starts and signs in via Clerk as before
+- [x] Add `Microsoft.AspNetCore.Identity.EntityFrameworkCore` NuGet package
+- [x] Create `ApplicationDbContext` extending `IdentityDbContext<IdentityUser>`
+- [x] Register `ApplicationDbContext` in `Program.cs` using the existing PostgreSQL connection string
+- [x] Register Identity services (`AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders()`) — do NOT change the authentication scheme yet
+- [x] Configure Identity options: `RequireConfirmedEmail = false`, password policy (RequiredLength 6, RequireDigit/Lowercase/Uppercase/NonAlphanumeric all true)
+- [x] Create EF Core migration that adds ASP.NET Core Identity tables (does not touch `AppOwners`)
+- [x] `dotnet build` passes
+- [x] `dotnet test` passes (existing Clerk tests still work)
+- [x] App starts and signs in via Clerk as before
