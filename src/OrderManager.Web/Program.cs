@@ -34,7 +34,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
-.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme)
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, o => o.Cookie.SecurePolicy = CookieSecurePolicy.Always)
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, oidc =>
     OpenIdConnectSetup.Configure(authOptions, oidc));
 
