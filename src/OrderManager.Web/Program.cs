@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -43,6 +44,13 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<OwnerService>();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                      | ForwardedHeaders.XForwardedProto
+                      | ForwardedHeaders.XForwardedHost,
+});
 
 if (string.IsNullOrWhiteSpace(authOptions.Authority)
     || string.IsNullOrWhiteSpace(authOptions.ClientId)
