@@ -79,8 +79,11 @@ app.MapRazorComponents<App>()
 
 using (var scope = app.Services.CreateScope())
 {
-    var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-    await DbSeeder.SeedAsync(factory);
+    var db = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+    await using var dbContext = await db.CreateDbContextAsync();
+    await dbContext.Database.MigrateAsync();
+
+    await DbSeeder.SeedAsync(db);
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
