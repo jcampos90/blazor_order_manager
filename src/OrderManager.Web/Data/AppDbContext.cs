@@ -9,7 +9,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
-    public DbSet<AppOwner> AppOwners => Set<AppOwner>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,14 +41,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasOne(l => l.Product).WithMany().HasForeignKey(l => l.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<AppOwner>(e =>
-        {
-            e.Property(o => o.Id).ValueGeneratedNever();
-            e.Property(o => o.ClerkUserId).IsRequired().HasMaxLength(200);
-            e.Property(o => o.CreatedAt).HasColumnType("timestamp without time zone");
-            e.ToTable(t => t.HasCheckConstraint("CK_AppOwner_SingleRow", "\"Id\" = 1"));
         });
     }
 }

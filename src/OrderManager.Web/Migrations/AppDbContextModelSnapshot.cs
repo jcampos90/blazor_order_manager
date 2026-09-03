@@ -22,27 +22,6 @@ namespace OrderManager.Web.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("OrderManager.Web.Models.AppOwner", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ClerkUserId")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AppOwners", t =>
-                        {
-                            t.HasCheckConstraint("CK_AppOwner_SingleRow", "\"Id\" = 1");
-                        });
-                });
-
             modelBuilder.Entity("OrderManager.Web.Models.Customer", b =>
                 {
                     b.Property<int>("Id")
