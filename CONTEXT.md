@@ -6,7 +6,7 @@ cuándo iniciar la preparación de cada producto para entregar a tiempo.
 ## Language
 
 **User**:
-The baker operating the app, signed in via Clerk. Owns the app's data as a single tenant.
+The baker operating the app, signed in via ASP.NET Core Identity. Owns the app's data as a single tenant.
 _Avoid_: account, profile
 
 **Customer**:

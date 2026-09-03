@@ -20,15 +20,14 @@ hora límite de inicio, sin hacer cuentas mentales.
 - Blazor Web App — interactive **Server** render mode
 - EF Core 10 + Npgsql (PostgreSQL)
 - PostgreSQL v16 vía Docker Compose (desarrollo local)
-- Autenticación Clerk vía OpenID Connect (cookie auth, sign-in alojado en Clerk); single-tenant,
-  con claim del primer inicio de sesión (ver ADR-0001)
+- Autenticación ASP.NET Core Identity (cookie auth, usuario/contraseña local); single-tenant,
+  con rol Owner y gate por middleware (ver ADR-0002)
 
 ## Commands
 
 ```
 Build:   dotnet build
-Run:     dotnet run --project src/OrderManager.Web  (usa la connection string local; requiere
-        las claves de Clerk en user-secrets — la app falla al arrancar si no están configuradas)
+Run:     dotnet run --project src/OrderManager.Web  (usa la connection string local)
 DB up:   docker compose up -d db
 DB down: docker compose down
 Migrate: dotnet ef database update --project src/OrderManager.Web
@@ -98,8 +97,7 @@ public static class PrepSchedule
 
 ## Success Criteria
 
-- [ ] `docker compose up -d db` levanta Postgres y `dotnet run` arranca la app (con las claves
-      de Clerk en user-secrets).
+- [ ] `docker compose up -d db` levanta Postgres y `dotnet run` arranca la app.
 - [ ] CRUD de productos: nombre, precio, horas de preparación, activo.
 - [ ] Alta de encargo con cliente (nombre+teléfono), fecha/hora de entrega, N renglones
       (producto, cantidad, precio unitario) y monto total calculado.
@@ -116,5 +114,5 @@ public static class PrepSchedule
    entregado al repartir. → quitar si sobra.
 3. **Zona horaria local** del panadero; sin manejo de timezones.
 4. **Clientes**: tabla con nombre+teléfono; el form de encargo permite buscar o crear rápido.
-5. La app es single-user local (un solo propietario vía Clerk). El `Monto cobrado` y la fecha/hora
+5. La app es single-user local (un solo propietario vía ASP.NET Core Identity). El `Monto cobrado` y la fecha/hora
    de entrega se capturan en el encargo; la hora de entrega es día **y** hora (ej. 08:00).

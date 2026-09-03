@@ -1,5 +1,7 @@
 # Clerk auth via OpenID Connect, single-tenant gate
 
+**Status:** Superseded by [0002-aspnet-core-identity-local-auth.md](0002-aspnet-core-identity-local-auth.md)
+
 The app was single-user and unauthenticated (personal use). We added Clerk as the identity
 provider, integrated through the standard ASP.NET Core OpenID Connect middleware — cookie auth
 with Clerk-hosted sign-in — instead of the `@clerk/clerk-js` SDK, because Blazor Server's
