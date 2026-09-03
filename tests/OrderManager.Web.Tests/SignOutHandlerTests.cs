@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using OrderManager.Web.Auth;
@@ -48,40 +47,20 @@ public class SignOutHandlerTests
     }
 
     [Fact]
-    public async Task SignOutAsync_SignsOutCookieScheme_ClearingLocalCookie()
+    public async Task SignOutAsync_SignsOutIdentityApplicationScheme()
     {
         var (auth, _) = await ActAndBuild();
 
-        Assert.Contains(CookieAuthenticationDefaults.AuthenticationScheme, auth.SignedOutSchemes);
+        Assert.Contains(IdentityConstants.ApplicationScheme, auth.SignedOutSchemes);
     }
 
     [Fact]
-    public async Task SignOutAsync_SignsOutOidcScheme_ForClerkEndSession()
-    {
-        var (auth, _) = await ActAndBuild();
-
-        Assert.Contains(OpenIdConnectDefaults.AuthenticationScheme, auth.SignedOutSchemes);
-    }
-
-    [Fact]
-    public async Task SignOutAsync_SignsOutCookieBeforeOidc_SoOidcEndSessionRedirectIsFinal()
-    {
-        var (auth, _) = await ActAndBuild();
-
-        var cookieIndex = auth.SignedOutSchemes.IndexOf(CookieAuthenticationDefaults.AuthenticationScheme);
-        var oidcIndex = auth.SignedOutSchemes.IndexOf(OpenIdConnectDefaults.AuthenticationScheme);
-
-        Assert.True(cookieIndex >= 0 && oidcIndex > cookieIndex,
-            "Cookie sign-out must precede OIDC sign-out so the OIDC end-session redirect is the final response.");
-    }
-
-    [Fact]
-    public async Task SignOutAsync_DoesNotIssueItsOwnRedirect_SoOidcEndSessionRedirectStands()
+    public async Task SignOutAsync_DoesNotIssueItsOwnRedirect()
     {
         var (_, context) = await ActAndBuild();
 
         Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
         Assert.False(context.Response.Headers.ContainsKey("Location"),
-            "The handler must not set its own Location header, which would overwrite the OIDC end-session redirect.");
+            "The handler must not set its own Location header.");
     }
 }

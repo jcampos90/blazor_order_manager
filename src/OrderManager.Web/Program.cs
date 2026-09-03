@@ -1,7 +1,4 @@
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OrderManager.Web.Auth;
@@ -40,30 +37,12 @@ builder.Services.Configure<IdentityOptions>(options =>
 
 builder.Services.AddScoped<DashboardService>();
 
-var authOptions = builder.Configuration
-    .GetSection(ClerkAuthOptions.SectionName)
-    .Get<ClerkAuthOptions>() ?? new ClerkAuthOptions();
-
-builder.Services.Configure<OwnerAuthOptions>(
-    builder.Configuration.GetSection(OwnerAuthOptions.SectionName));
-
-var ownerOptions = builder.Configuration
-    .GetSection(OwnerAuthOptions.SectionName)
-    .Get<OwnerAuthOptions>() ?? new OwnerAuthOptions();
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-})
-.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, o => o.Cookie.SecurePolicy = CookieSecurePolicy.Always)
-.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, oidc =>
-    OpenIdConnectSetup.Configure(authOptions, oidc));
+builder.Services.AddAuthentication()
+    .AddIdentityCookies();
 
 builder.Services.AddAuthorization(AuthorizationSetup.Configure);
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<OwnerService>();
 
 var app = builder.Build();
 
@@ -73,15 +52,6 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
                       | ForwardedHeaders.XForwardedProto
                       | ForwardedHeaders.XForwardedHost,
 });
-
-if (string.IsNullOrWhiteSpace(authOptions.Authority)
-    || string.IsNullOrWhiteSpace(authOptions.ClientId)
-    || string.IsNullOrWhiteSpace(authOptions.ClientSecret))
-{
-    throw new InvalidOperationException(
-        "Clerk OIDC is not configured. Set Auth:Oidc:Authority, Auth:Oidc:ClientId and " +
-        "Auth:Oidc:ClientSecret via `dotnet user-secrets set` before starting the app.");
-}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -112,16 +82,9 @@ using (var scope = app.Services.CreateScope())
     var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
     await DbSeeder.SeedAsync(factory);
 
-    if (!ownerOptions.AllowClaim)
-    {
-        var ownerService = scope.ServiceProvider.GetRequiredService<OwnerService>();
-        if (await ownerService.GetOwnerIdAsync() is null)
-        {
-            throw new InvalidOperationException(
-                "Auth:AllowClaim is disabled but no owner is recorded. Enable Auth:AllowClaim " +
-                "and sign in once to claim the owner, then disable it for production.");
-        }
-    }
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    await OwnerRoleInitializer.InitializeAsync(userManager, roleManager);
 }
 
 app.Run();
