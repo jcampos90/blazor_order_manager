@@ -76,7 +76,7 @@ app.MapStaticAssets().AllowAnonymous();
 
 app.MapPost("/api/login", SignInHandler.SignInAsync).AllowAnonymous();
 
-app.MapPost("/signout", (HttpContext context) => SignOutHandler.SignOutAsync(context))
+app.MapPost("/signout", (Delegate)SignOutHandler.SignOutAsync)
     .RequireAuthorization();
 
 app.MapRazorComponents<App>()

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
 
 namespace OrderManager.Web.Auth;
@@ -6,12 +7,22 @@ public static class SignInHandler
 {
     public static async Task<IResult> SignInAsync(
         HttpContext context,
-        SignInManager<IdentityUser> signInManager)
+        SignInManager<IdentityUser> signInManager,
+        IAntiforgery antiforgery)
     {
         var form = await context.Request.ReadFormAsync();
         var email = form["email"].ToString();
         var password = form["password"].ToString();
         var returnUrl = string.IsNullOrEmpty(form["returnUrl"]) ? "/" : form["returnUrl"].ToString();
+
+        try
+        {
+            await antiforgery.ValidateRequestAsync(context);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return Results.Redirect(BuildLoginUrl(returnUrl, "invalid"));
+        }
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {
