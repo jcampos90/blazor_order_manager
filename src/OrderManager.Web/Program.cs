@@ -35,10 +35,13 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequireNonAlphanumeric = true;
 });
 
-builder.Services.AddScoped<DashboardService>();
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/login";
+    options.AccessDeniedPath = "/access-denied";
+});
 
-builder.Services.AddAuthentication()
-    .AddIdentityCookies();
+builder.Services.AddScoped<DashboardService>();
 
 builder.Services.AddAuthorization(AuthorizationSetup.Configure);
 builder.Services.AddCascadingAuthenticationState();
@@ -69,7 +72,9 @@ app.UseAuthorization();
 
 app.UseAntiforgery();
 
-app.MapStaticAssets();
+app.MapStaticAssets().AllowAnonymous();
+
+app.MapPost("/api/login", SignInHandler.SignInAsync).AllowAnonymous();
 
 app.MapPost("/signout", (HttpContext context) => SignOutHandler.SignOutAsync(context))
     .RequireAuthorization();
@@ -79,11 +84,14 @@ app.MapRazorComponents<App>()
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-    await using var dbContext = await db.CreateDbContextAsync();
-    await dbContext.Database.MigrateAsync();
+    var appDb = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+    await using var appDbContext = await appDb.CreateDbContextAsync();
+    await appDbContext.Database.MigrateAsync();
 
-    await DbSeeder.SeedAsync(db);
+    var identityDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await identityDb.Database.MigrateAsync();
+
+    await DbSeeder.SeedAsync(appDb);
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();

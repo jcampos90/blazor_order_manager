@@ -18,6 +18,11 @@ RUN dotnet ef migrations bundle \
       --project OrderManager.Web.csproj \
       --startup-project OrderManager.Web.csproj \
       --self-contained -r linux-x64 -o /app/publish/migrate-app
+RUN dotnet ef migrations bundle \
+      --context ApplicationDbContext \
+      --project OrderManager.Web.csproj \
+      --startup-project OrderManager.Web.csproj \
+      --self-contained -r linux-x64 -o /app/publish/migrate-identity
 
 # Stage 2: Minimal Runtime
 # NOTE: must NOT be the `-alpine` variant. The migration bundle above is built
@@ -32,6 +37,6 @@ ENV ASPNETCORE_HTTP_PORTS=8080
 
 COPY --from=build /app/publish .
 COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh migrate-app
+RUN chmod +x entrypoint.sh migrate-app migrate-identity
 #USER app
 ENTRYPOINT ["./entrypoint.sh"]
