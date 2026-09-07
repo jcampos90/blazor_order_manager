@@ -1355,3 +1355,94 @@ textarea.form-control {
         grid-template-columns: 1fr 1fr;
     }
 }
+
+/* ============ Login layout (full-page, no sidebar) ============ */
+
+.btn-ghost-danger {
+    color: var(--danger);
+}
+
+.btn-ghost-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
+    color: var(--danger);
+}
+
+.btn-ghost-danger:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.temp-password-box {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .7rem .9rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+}
+
+.temp-password-box code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 1rem;
+    color: var(--text);
+    word-break: break-all;
+    flex: 1;
+}
+
+.login-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.25rem;
+    background:
+        radial-gradient(1100px 600px at 50% -10%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 60%),
+        radial-gradient(900px 500px at 90% 110%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 60%),
+        var(--bg);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 2rem 2rem 1.6rem;
+}
+
+.login-brand {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    margin-bottom: 1.6rem;
+}
+
+.login-title {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin: 0 0 .5rem;
+    color: var(--text);
+    letter-spacing: -.01em;
+}
+
+.login-sub {
+    color: var(--text-2);
+    font-size: .95rem;
+    margin: 0 0 1.4rem;
+}
+
+.login-actions {
+    display: flex;
+    justify-content: center;
+    gap: .6rem;
+    margin-top: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .login-shell {
+        background: var(--bg);
+    }
+}

@@ -1,0 +1,367 @@
+@page "/usuarios"
+@attribute [Authorize(Roles = "Owner")]
+@layout MainLayout
+@inject UserService UserService
+@inject IJSRuntime JS
+@using OrderManager.Web.Auth
+@using OrderManager.Web.Services
+
+<PageTitle>Usuarios</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Usuarios</h1>
+        <p class="page-sub">Quién puede entrar a la app. Solo el panadero (Owner) ve esta página.</p>
+    </div>
+    <div class="page-header-actions">
+        <button type="button" class="btn btn-primary" @onclick="OpenCreateAsync">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+            </svg>
+            Crear usuario
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th class="num">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (_users is null)
+            {
+                <tr><td colspan="4" class="table-muted">Cargando…</td></tr>
+            }
+            else if (_users.Count == 0)
+            {
+                <tr><td colspan="4" class="table-muted">Todavía no hay usuarios. Creá el primero.</td></tr>
+            }
+            else
+            {
+                @foreach (var u in _users)
+                {
+                    var isLastOwner = u.Role == "Owner" && u.Id == _lastOwnerId;
+                    <tr>
+                        <td class="cell-strong">
+                            @(string.IsNullOrEmpty(u.DisplayName) ? u.Email : u.DisplayName)
+                            @if (u.MustChangePassword)
+                            {
+                                <span class="badge badge-pending" style="margin-left:.4rem;">Cambiar contraseña</span>
+                            }
+                        </td>
+                        <td>@u.Email</td>
+                        <td><span class="badge @(u.Role == "Owner" ? "badge-delivered" : "badge-production")">@u.Role</span></td>
+                        <td>
+                            <div class="row-actions">
+                                <button type="button" class="btn btn-ghost btn-sm" @onclick="() => OpenEditAsync(u.Id)">Editar</button>
+                                <button type="button" class="btn btn-ghost btn-sm" @onclick="() => OpenResetAsync(u.Id)">Cambiar contraseña</button>
+                                <button type="button" class="btn btn-ghost btn-sm btn-ghost-danger" disabled="@isLastOwner" title="@(isLastOwner ? "No podés eliminar al único Owner" : "")" @onclick="() => OpenDeleteAsync(u.Id)">Eliminar</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<Modal Title="@_createModalTitle" Visible="@_createOpen" OnClose="@CloseCreateAsync">
+    <div class="field" style="margin-bottom:.9rem;">
+        <label class="form-label" for="cu-email">Email</label>
+        <input id="cu-email" type="email" class="form-control" @bind="_createEmail" autocomplete="off" />
+    </div>
+    <div class="field" style="margin-bottom:.9rem;">
+        <label class="form-label" for="cu-name">Nombre para mostrar</label>
+        <input id="cu-name" class="form-control" @bind="_createDisplayName" autocomplete="off" />
+    </div>
+    <div class="field" style="margin-bottom:.4rem;">
+        <label class="form-label" for="cu-role">Rol</label>
+        <select id="cu-role" class="form-select" @bind="_createRole">
+            <option value="Staff">Staff</option>
+            <option value="Owner">Owner (cuidado: puede gestionar usuarios)</option>
+        </select>
+    </div>
+    @if (!string.IsNullOrEmpty(_createError))
+    {
+        <div class="alert alert-danger" role="alert">@_createError</div>
+    }
+    <div class="modal-actions">
+        <button type="button" class="btn btn-outline" @onclick="CloseCreateAsync">Cancelar</button>
+        <button type="button" class="btn btn-primary" @onclick="CreateAsync">Crear</button>
+    </div>
+</Modal>
+
+<Modal Title="@_tempModalTitle" Visible="@_tempOpen" OnClose="@CloseTempAsync">
+    <p>Compartí esta contraseña con la persona. No se vuelve a mostrar.</p>
+    <div class="temp-password-box">
+        <code>@_tempPassword</code>
+        <button type="button" class="btn btn-ghost btn-sm" @onclick="CopyTempAsync">Copiar</button>
+    </div>
+    @if (_copied)
+    {
+        <p style="color: var(--success); font-size: .85rem; margin: .3rem 0 0;">Copiado.</p>
+    }
+    <div class="modal-actions">
+        <button type="button" class="btn btn-primary" @onclick="CloseTempAsync">Listo</button>
+    </div>
+</Modal>
+
+<Modal Title="Editar usuario" Visible="@_editOpen" OnClose="@CloseEditAsync">
+    <div class="field" style="margin-bottom:.9rem;">
+        <label class="form-label" for="eu-email">Email</label>
+        <input id="eu-email" type="email" class="form-control" @bind="_editEmail" autocomplete="off" />
+    </div>
+    <div class="field" style="margin-bottom:.9rem;">
+        <label class="form-label" for="eu-name">Nombre para mostrar</label>
+        <input id="eu-name" class="form-control" @bind="_editDisplayName" autocomplete="off" />
+    </div>
+    <div class="field" style="margin-bottom:.4rem;">
+        <label class="form-label" for="eu-role">Rol</label>
+        <select id="eu-role" class="form-select" @bind="_editRole" disabled="@_editIsLastOwner">
+            <option value="Staff">Staff</option>
+            <option value="Owner">Owner</option>
+        </select>
+    </div>
+    @if (_editIsLastOwner)
+    {
+        <p style="color: var(--text-2); font-size: .85rem;">No podés cambiar el rol del único Owner.</p>
+    }
+    @if (!string.IsNullOrEmpty(_editError))
+    {
+        <div class="alert alert-danger" role="alert">@_editError</div>
+    }
+    <div class="modal-actions">
+        <button type="button" class="btn btn-outline" @onclick="CloseEditAsync">Cancelar</button>
+        <button type="button" class="btn btn-primary" @onclick="SaveEditAsync">Guardar</button>
+    </div>
+</Modal>
+
+<Modal Title="Eliminar usuario" Visible="@_deleteOpen" OnClose="@CloseDeleteAsync">
+    <p>Vas a eliminar a <strong>@_deleteName</strong>. Ya no podrá iniciar sesión.</p>
+    <div class="modal-actions">
+        <button type="button" class="btn btn-outline" @onclick="CloseDeleteAsync">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteAsync">Eliminar</button>
+    </div>
+</Modal>
+
+@code {
+    private IReadOnlyList<UserSummary>? _users;
+    private string? _lastOwnerId;
+    private string? _errorMessage;
+
+    private bool _createOpen;
+    private string _createEmail = "";
+    private string _createDisplayName = "";
+    private string _createRole = "Staff";
+    private string? _createError;
+    private string _createModalTitle = "Crear usuario";
+
+    private bool _tempOpen;
+    private string _tempModalTitle = "Contraseña temporal";
+    private string _tempPassword = "";
+    private bool _copied;
+
+    private bool _editOpen;
+    private string _editId = "";
+    private string _editEmail = "";
+    private string _editDisplayName = "";
+    private string _editRole = "Staff";
+    private bool _editIsLastOwner;
+    private string? _editError;
+
+    private bool _deleteOpen;
+    private string _deleteId = "";
+    private string _deleteName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _users = await UserService.ListAsync();
+        _lastOwnerId = _users
+            .Where(u => u.Role == "Owner")
+            .OrderBy(u => u.Email, StringComparer.OrdinalIgnoreCase)
+            .Select(u => u.Id)
+            .LastOrDefault();
+    }
+
+    private void OpenCreateAsync()
+    {
+        _createEmail = "";
+        _createDisplayName = "";
+        _createRole = "Staff";
+        _createError = null;
+        _createOpen = true;
+    }
+
+    private async Task CloseCreateAsync()
+    {
+        _createOpen = false;
+        await ReloadAsync();
+    }
+
+    private async Task CreateAsync()
+    {
+        _createError = null;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_createEmail))
+            {
+                _createError = "Ingresá un email.";
+                return;
+            }
+            var (temp, _) = await UserService.CreateAsync(_createEmail.Trim(), _createDisplayName, _createRole);
+            _createOpen = false;
+            _tempModalTitle = "Usuario creado — contraseña temporal";
+            _tempPassword = temp;
+            _copied = false;
+            _tempOpen = true;
+            await ReloadAsync();
+        }
+        catch (LastOwnerException ex)
+        {
+            _createError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _createError = ex.Message;
+        }
+    }
+
+    private async Task CloseTempAsync()
+    {
+        _tempOpen = false;
+        _tempPassword = "";
+        _copied = false;
+        await ReloadAsync();
+    }
+
+    private async Task CopyTempAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", _tempPassword);
+            _copied = true;
+        }
+        catch
+        {
+            _copied = false;
+        }
+    }
+
+    private async Task OpenEditAsync(string userId)
+    {
+        var u = await UserService.GetByIdAsync(userId);
+        if (u is null) return;
+        _editId = userId;
+        _editEmail = u.Email;
+        _editDisplayName = u.DisplayName ?? "";
+        _editRole = u.Role;
+        _editIsLastOwner = u.Role == "Owner" && u.Id == _lastOwnerId && (await UserService.CountOwnersAsync()) == 1;
+        _editError = null;
+        _editOpen = true;
+    }
+
+    private async Task CloseEditAsync()
+    {
+        _editOpen = false;
+        await ReloadAsync();
+    }
+
+    private async Task SaveEditAsync()
+    {
+        _editError = null;
+        try
+        {
+            await UserService.UpdateAsync(_editId, _editEmail, _editDisplayName);
+            var original = _users?.FirstOrDefault(u => u.Id == _editId);
+            if (original is not null && original.Role != _editRole)
+            {
+                await UserService.ChangeRoleAsync(_editId, _editRole);
+            }
+            _editOpen = false;
+            await ReloadAsync();
+        }
+        catch (LastOwnerException ex)
+        {
+            _editError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _editError = ex.Message;
+        }
+    }
+
+    private void OpenResetAsync(string userId)
+    {
+        _resetUserId = userId;
+        _ = ResetAsync();
+    }
+
+    private string _resetUserId = "";
+
+    private async Task ResetAsync()
+    {
+        try
+        {
+            var temp = await UserService.ResetPasswordAsync(_resetUserId);
+            _tempModalTitle = "Contraseña cambiada — contraseña temporal";
+            _tempPassword = temp;
+            _copied = false;
+            _tempOpen = true;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void OpenDeleteAsync(string userId)
+    {
+        var u = _users?.FirstOrDefault(x => x.Id == userId);
+        if (u is null) return;
+        _deleteId = userId;
+        _deleteName = string.IsNullOrEmpty(u.DisplayName) ? u.Email : u.DisplayName;
+        _deleteOpen = true;
+    }
+
+    private async Task CloseDeleteAsync()
+    {
+        _deleteOpen = false;
+    }
+
+    private async Task ConfirmDeleteAsync()
+    {
+        try
+        {
+            var ok = await UserService.DeleteAsync(_deleteId);
+            if (!ok)
+            {
+                _deleteOpen = false;
+                _errorMessage = "No podés eliminar al único Owner.";
+                await ReloadAsync();
+                return;
+            }
+            _deleteOpen = false;
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+}

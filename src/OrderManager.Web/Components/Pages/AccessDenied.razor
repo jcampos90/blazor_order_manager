@@ -1,7 +1,12 @@
 @page "/access-denied"
 @attribute [AllowAnonymous]
-@layout MainLayout
+@layout LoginLayout
 
-<h3>Acceso denegado</h3>
-<p>Esta aplicación pertenece a un único usuario. Si creés que deberías tener acceso, contactá
-    al dueño de la panadería.</p>
+<PageTitle>Acceso denegado</PageTitle>
+
+<h2 class="login-title">No tenés permisos para entrar a esta página.</h2>
+<p class="login-sub">Si creés que deberías tener acceso, contactá al panadero.</p>
+
+<div class="login-actions">
+    <a href="/" class="btn btn-primary">Volver al inicio</a>
+</div>

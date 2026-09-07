@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OrderManager.Web.Auth;
 using OrderManager.Web.Components;
 using OrderManager.Web.Data;
+using OrderManager.Web.Models;
 using OrderManager.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,7 +22,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+builder.Services.AddIdentity<AppUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
@@ -45,6 +46,7 @@ builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<UserService>();
 
 builder.Services.AddAuthorization(AuthorizationSetup.Configure);
 builder.Services.AddCascadingAuthenticationState();
@@ -70,7 +72,7 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
-app.UseMiddleware<OwnerGateMiddleware>();
+app.UseMiddleware<AuthGateMiddleware>();
 app.UseAuthorization();
 
 app.UseAntiforgery();
@@ -96,9 +98,9 @@ using (var scope = app.Services.CreateScope())
 
     await DbSeeder.SeedAsync(appDb);
 
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    await OwnerRoleInitializer.InitializeAsync(userManager, roleManager);
+    await UserRoleInitializer.InitializeAsync(userManager, roleManager);
 }
 
 app.Run();

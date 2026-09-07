@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
+using OrderManager.Web.Models;
 
 namespace OrderManager.Web.Auth;
 
@@ -7,7 +8,7 @@ public static class SignInHandler
 {
     public static async Task<IResult> SignInAsync(
         HttpContext context,
-        SignInManager<IdentityUser> signInManager,
+        SignInManager<AppUser> signInManager,
         IAntiforgery antiforgery)
     {
         var form = await context.Request.ReadFormAsync();
@@ -34,6 +35,11 @@ public static class SignInHandler
 
         if (result.Succeeded)
         {
+            var user = await signInManager.UserManager.FindByEmailAsync(email);
+            if (user?.MustChangePassword == true)
+            {
+                return Results.LocalRedirect("/cuenta?force=1");
+            }
             return Results.LocalRedirect(returnUrl);
         }
 

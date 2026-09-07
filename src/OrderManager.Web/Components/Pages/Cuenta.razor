@@ -1,0 +1,191 @@
+@page "/cuenta"
+@attribute [Authorize]
+@layout MainLayout
+@inject UserManager<AppUser> UserManager
+@inject UserService UserService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using OrderManager.Web.Auth
+@using OrderManager.Web.Models
+@using OrderManager.Web.Services
+
+<PageTitle>Mi cuenta</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Mi cuenta</h1>
+        <p class="page-sub">Tu nombre y contraseña. Los demás campos los maneja el panadero.</p>
+    </div>
+</div>
+
+@if (_user is null)
+{
+    <p>Cargando…</p>
+}
+else
+{
+    @if (_user.MustChangePassword)
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>Antes de seguir tenés que cambiar tu contraseña.</strong> Si no lo hacés, no podés usar la app.
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_statusMessage))
+    {
+        <div class="alert alert-success" role="alert">@_statusMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@_errorMessage</div>
+    }
+
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">Datos</h2>
+            <div class="field" style="margin-bottom: .9rem;">
+                <label class="form-label">Email</label>
+                <input class="form-control" value="@_user.Email" readonly disabled />
+            </div>
+            <div class="field" style="margin-bottom: 1rem;">
+                <label class="form-label" for="displayName">Nombre para mostrar</label>
+                <input id="displayName" class="form-control" @bind="_displayName" disabled="@_user.MustChangePassword" />
+            </div>
+            <button type="button" class="btn btn-primary" @onclick="SaveDisplayNameAsync" disabled="@_user.MustChangePassword">
+                Guardar nombre
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">Contraseña</h2>
+
+            @if (_user.MustChangePassword)
+            {
+                <p style="color: var(--text-2); margin-bottom: 1rem;">Tu contraseña actual es la que te pasaron. Elegí una nueva.</p>
+            }
+
+            <div class="field" style="margin-bottom: .9rem;">
+                <label class="form-label" for="currentPassword">Contraseña actual</label>
+                <input id="currentPassword" type="password" class="form-control" @bind="_currentPassword" autocomplete="current-password" />
+            </div>
+            <div class="form-row">
+                <div class="field c-6" style="margin-bottom: .9rem;">
+                    <label class="form-label" for="newPassword">Nueva contraseña</label>
+                    <input id="newPassword" type="password" class="form-control" @bind="_newPassword" autocomplete="new-password" />
+                </div>
+                <div class="field c-6" style="margin-bottom: .9rem;">
+                    <label class="form-label" for="confirmPassword">Repetir nueva contraseña</label>
+                    <input id="confirmPassword" type="password" class="form-control" @bind="_confirmPassword" autocomplete="new-password" />
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary" @onclick="ChangePasswordAsync" disabled="@_savingPassword">
+                @(_user.MustChangePassword ? "Cambiar contraseña y entrar" : "Cambiar contraseña")
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private AppUser? _user;
+    private string _displayName = "";
+    private string _currentPassword = "";
+    private string _newPassword = "";
+    private string _confirmPassword = "";
+    private bool _savingPassword;
+    private string? _statusMessage;
+    private string? _errorMessage;
+
+    [SupplyParameterFromQuery(Name = "force")]
+    private string? Force { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        var principal = state.User;
+        if (principal.Identity?.IsAuthenticated != true)
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        var id = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? principal.FindFirst("sub")?.Value;
+        if (id is null)
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        _user = await UserManager.FindByIdAsync(id);
+        if (_user is null)
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+        _displayName = _user.DisplayName ?? "";
+    }
+
+    private async Task SaveDisplayNameAsync()
+    {
+        if (_user is null) return;
+        _statusMessage = null;
+        _errorMessage = null;
+        try
+        {
+            await UserService.UpdateOwnDisplayNameAsync(_user.Id, _displayName);
+            _statusMessage = "Nombre guardado.";
+            _user.DisplayName = string.IsNullOrWhiteSpace(_displayName) ? null : _displayName.Trim();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        if (_user is null) return;
+        _statusMessage = null;
+        _errorMessage = null;
+
+        if (string.IsNullOrEmpty(_currentPassword) || string.IsNullOrEmpty(_newPassword))
+        {
+            _errorMessage = "Completá la contraseña actual y la nueva.";
+            return;
+        }
+        if (!string.Equals(_newPassword, _confirmPassword, StringComparison.Ordinal))
+        {
+            _errorMessage = "La nueva contraseña y su confirmación no coinciden.";
+            return;
+        }
+
+        _savingPassword = true;
+        try
+        {
+            await UserService.ChangeOwnPasswordAsync(_user.Id, _currentPassword, _newPassword);
+            _user.MustChangePassword = false;
+            _currentPassword = "";
+            _newPassword = "";
+            _confirmPassword = "";
+            _statusMessage = "Contraseña actualizada.";
+
+            if (Force == "1")
+            {
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _savingPassword = false;
+        }
+    }
+}

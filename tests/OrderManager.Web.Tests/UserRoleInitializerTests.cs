@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using OrderManager.Web.Auth;
 using OrderManager.Web.Data;
+using OrderManager.Web.Models;
 
 namespace OrderManager.Web.Tests;
 
-public class OwnerRoleInitializerTests
+public class UserRoleInitializerTests
 {
-    private static (UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, ServiceProvider provider) BuildServices(string dbName)
+    private static (UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager, ServiceProvider provider) BuildServices(string dbName)
     {
         var services = new ServiceCollection();
 
@@ -17,7 +17,7 @@ public class OwnerRoleInitializerTests
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase(dbName));
 
-        services.AddIdentity<IdentityUser, IdentityRole>(options =>
+        services.AddIdentity<AppUser, IdentityRole>(options =>
         {
             options.Password.RequiredLength = 1;
             options.Password.RequireDigit = false;
@@ -30,20 +30,21 @@ public class OwnerRoleInitializerTests
 
         var provider = services.BuildServiceProvider();
         return (
-            provider.GetRequiredService<UserManager<IdentityUser>>(),
+            provider.GetRequiredService<UserManager<AppUser>>(),
             provider.GetRequiredService<RoleManager<IdentityRole>>(),
             provider);
     }
 
     [Fact]
-    public async Task InitializeAsync_SeedsOwnerRole_WhenNotExists()
+    public async Task InitializeAsync_SeedsOwnerAndStaffRoles_WhenNotExists()
     {
-        var dbName = nameof(InitializeAsync_SeedsOwnerRole_WhenNotExists);
+        var dbName = nameof(InitializeAsync_SeedsOwnerAndStaffRoles_WhenNotExists);
         var (userManager, roleManager, _) = BuildServices(dbName);
 
-        await OwnerRoleInitializer.InitializeAsync(userManager, roleManager);
+        await UserRoleInitializer.InitializeAsync(userManager, roleManager);
 
         Assert.True(await roleManager.RoleExistsAsync("Owner"));
+        Assert.True(await roleManager.RoleExistsAsync("Staff"));
     }
 
     [Fact]
@@ -52,10 +53,12 @@ public class OwnerRoleInitializerTests
         var dbName = nameof(InitializeAsync_CreatesAdminUser_WhenNotExists);
         var (userManager, roleManager, _) = BuildServices(dbName);
 
-        await OwnerRoleInitializer.InitializeAsync(userManager, roleManager);
+        await UserRoleInitializer.InitializeAsync(userManager, roleManager);
 
         var user = await userManager.FindByEmailAsync("admin@ordermanager.local");
         Assert.NotNull(user);
+        Assert.Equal("Admin", user!.DisplayName);
+        Assert.False(user.MustChangePassword);
     }
 
     [Fact]
@@ -64,7 +67,7 @@ public class OwnerRoleInitializerTests
         var dbName = nameof(InitializeAsync_AssignsOwnerRoleToAdminUser);
         var (userManager, roleManager, _) = BuildServices(dbName);
 
-        await OwnerRoleInitializer.InitializeAsync(userManager, roleManager);
+        await UserRoleInitializer.InitializeAsync(userManager, roleManager);
 
         var user = await userManager.FindByEmailAsync("admin@ordermanager.local");
         Assert.NotNull(user);
@@ -77,8 +80,8 @@ public class OwnerRoleInitializerTests
         var dbName = nameof(InitializeAsync_Idempotent_CanRunTwiceWithoutError);
         var (userManager, roleManager, _) = BuildServices(dbName);
 
-        await OwnerRoleInitializer.InitializeAsync(userManager, roleManager);
-        await OwnerRoleInitializer.InitializeAsync(userManager, roleManager);
+        await UserRoleInitializer.InitializeAsync(userManager, roleManager);
+        await UserRoleInitializer.InitializeAsync(userManager, roleManager);
 
         var user = await userManager.FindByEmailAsync("admin@ordermanager.local");
         Assert.NotNull(user);

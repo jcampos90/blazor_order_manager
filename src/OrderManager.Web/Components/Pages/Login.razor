@@ -1,42 +1,44 @@
 @page "/login"
 @attribute [AllowAnonymous]
-@layout MainLayout
-@inject IAntiforgery Antiforgery
-@inject IHttpContextAccessor HttpContextAccessor
-@using Microsoft.AspNetCore.Antiforgery
+@layout LoginLayout
 
 <PageTitle>Iniciar sesión</PageTitle>
 
-<div class="card" style="max-width:380px; margin:4rem auto;">
-    <h2>Iniciar sesión</h2>
+@if (Error == "invalid")
+{
+    <div class="alert alert-danger" role="alert">Email o contraseña incorrectos.</div>
+}
+else if (Error == "missing")
+{
+    <div class="alert alert-danger" role="alert">Ingresá email y contraseña.</div>
+}
+else if (Error == "expired")
+{
+    <div class="alert alert-danger" role="alert">Tu sesión expiró. Volvé a iniciar sesión.</div>
+}
 
-    @if (Error == "invalid")
-    {
-        <p style="color:var(--color-danger);">Email o contraseña incorrectos.</p>
-    }
-    else if (Error == "missing")
-    {
-        <p style="color:var(--color-danger);">Ingresá email y contraseña.</p>
-    }
+<form method="post" action="/api/login">
+    <AntiforgeryToken />
+    <input name="returnUrl" type="hidden" value="@ReturnUrl" />
 
-    <form method="post" action="/api/login">
-        <input name="__RequestVerificationToken" type="hidden" value="@_antiforgeryToken" />
-        <input name="returnUrl" type="hidden" value="@ReturnUrl" />
-        <div class="form-group">
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" class="form-control" required />
-        </div>
-        <div class="form-group">
-            <label for="password">Contraseña</label>
-            <input id="password" name="password" type="password" class="form-control" required />
-        </div>
-        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Entrar</button>
-    </form>
-</div>
+    <div class="field" style="margin-bottom: .9rem;">
+        <label class="form-label" for="email">Email</label>
+        <input id="email" name="email" type="email" class="form-control" required autocomplete="username" />
+    </div>
+
+    <div class="field" style="margin-bottom: 1.2rem;">
+        <label class="form-label" for="password">Contraseña</label>
+        <input id="password" name="password" type="password" class="form-control" required autocomplete="current-password" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="width: 100%;">Entrar</button>
+</form>
+
+<p style="text-align:center; color: var(--text-2); font-size: .85rem; margin: 1.4rem 0 0;">
+    ¿Necesitás ayuda? Pedile al panadero que te cree un usuario.
+</p>
 
 @code {
-    private string? _antiforgeryToken;
-
     [SupplyParameterFromQuery(Name = "error")]
     private string? Error { get; set; }
 
@@ -46,8 +48,5 @@
     protected override void OnInitialized()
     {
         ReturnUrl ??= "/";
-        _antiforgeryToken = HttpContextAccessor.HttpContext is { } httpContext
-            ? Antiforgery.GetAndStoreTokens(httpContext).RequestToken
-            : null;
     }
 }

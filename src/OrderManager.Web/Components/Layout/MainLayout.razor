@@ -26,6 +26,7 @@
             </button>
             <div class="topbar-user">
                 <span class="topbar-identity">@_identity</span>
+                <a href="cuenta" class="btn btn-ghost btn-sm">Mi cuenta</a>
                 <form method="post" action="/signout">
                     <input name="__RequestVerificationToken" type="hidden" value="@_antiforgeryToken" />
                     <button type="submit" class="btn btn-ghost btn-sm">Cerrar sesión</button>

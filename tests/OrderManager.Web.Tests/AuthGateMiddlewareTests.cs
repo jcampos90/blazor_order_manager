@@ -1,13 +1,12 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using OrderManager.Web.Auth;
 
 namespace OrderManager.Web.Tests;
 
-public class OwnerGateMiddlewareTests
+public class AuthGateMiddlewareTests
 {
     private sealed class FakeAuthenticationService : IAuthenticationService
     {
@@ -32,7 +31,7 @@ public class OwnerGateMiddlewareTests
         }
     }
 
-    private static (FakeAuthenticationService auth, DefaultHttpContext context, OwnerGateMiddleware middleware) BuildPipeline(ClaimsPrincipal? user = null)
+    private static (FakeAuthenticationService auth, DefaultHttpContext context, AuthGateMiddleware middleware) BuildPipeline(ClaimsPrincipal? user = null)
     {
         var fake = new FakeAuthenticationService();
         var services = new ServiceCollection();
@@ -43,7 +42,7 @@ public class OwnerGateMiddlewareTests
         if (user is not null)
             context.User = user;
 
-        var middleware = new OwnerGateMiddleware(_ => Task.CompletedTask);
+        var middleware = new AuthGateMiddleware(_ => Task.CompletedTask);
         return (fake, context, middleware);
     }
 
@@ -54,7 +53,7 @@ public class OwnerGateMiddlewareTests
             new(ClaimTypes.Name, "testuser"),
         };
         claims.AddRange(extraClaims);
-        var identity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
+        var identity = new ClaimsIdentity(claims, "TestScheme");
         return new ClaimsPrincipal(identity);
     }
 
@@ -76,16 +75,15 @@ public class OwnerGateMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_AuthenticatedUserWithoutOwnerRole_SignsOutAndRedirects()
+    public async Task InvokeAsync_AuthenticatedStaffUser_PassesThrough()
     {
-        var user = BuildAuthenticatedUser();
+        var user = BuildAuthenticatedUser(new Claim(ClaimTypes.Role, "Staff"));
         var (auth, context, middleware) = BuildPipeline(user);
 
         await middleware.InvokeAsync(context);
 
-        Assert.Contains(IdentityConstants.ApplicationScheme, auth.SignedOutSchemes);
-        Assert.Equal(StatusCodes.Status302Found, context.Response.StatusCode);
-        Assert.Equal("/access-denied", context.Response.Headers.Location.ToString()!.ToLowerInvariant());
+        Assert.Empty(auth.SignedOutSchemes);
+        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
     }
 
     [Fact]
