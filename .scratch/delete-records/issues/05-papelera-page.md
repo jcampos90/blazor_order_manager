@@ -4,13 +4,13 @@
 
 **Blocked by:** 01, 02, 03
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] New page at `/papelera` with two sections: "Clientes eliminados" and "Productos eliminados"
-- [ ] Customer row: Name, Phone, DeletedAt formatted as a short date, Restaurar button
-- [ ] Product row: Name, Price (currency), PrepHours, DeletedAt formatted as a short date, Restaurar button
-- [ ] Each section shows an empty state ("No hay clientes eliminados." / "No hay productos eliminados.") when there are no deleted rows
-- [ ] "Restaurar" sets `DeletedAt = null` via `db.Customers.Update` / `db.Products.Update`, saves, and refreshes the affected section
-- [ ] Sidebar (or topbar) nav gains a "Papelera" entry, styled consistently with the existing nav items
-- [ ] xUnit test (`PapeleraTests`): a soft-deleted Customer and Product both appear in their respective Papelera queries; restoring either nulls `DeletedAt` and removes it from the Papelera query
-- [ ] `dotnet build` and `dotnet test` pass
+- [x] New page at `/papelera` with two sections: "Clientes eliminados" and "Productos eliminados"
+- [x] Customer row: Name, Phone, DeletedAt formatted as a short date, Restaurar button
+- [x] Product row: Name, Price (currency), PrepHours, DeletedAt formatted as a short date, Restaurar button
+- [x] Each section shows an empty state ("No hay clientes eliminados." / "No hay productos eliminados.") when there are no deleted rows
+- [x] "Restaurar" sets `DeletedAt = null` via `db.Customers.Update` / `db.Products.Update`, saves, and refreshes the affected section
+- [x] Sidebar (or topbar) nav gains a "Papelera" entry, styled consistently with the existing nav items
+- [x] xUnit test (`PapeleraTests`): a soft-deleted Customer and Product both appear in their respective Papelera queries; restoring either nulls `DeletedAt` and removes it from the Papelera query
+- [x] `dotnet build` and `dotnet test` pass
