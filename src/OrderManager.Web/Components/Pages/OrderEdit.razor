@@ -122,6 +122,10 @@ else
                                                         {
                                                             <option value="@p.Id">@p.Name</option>
                                                         }
+                                                        @foreach (var p in DeletedReferencedProducts(line.ProductId))
+                                                        {
+                                                            <option value="@p.Id" disabled>@p.Name (eliminado)</option>
+                                                        }
                                                     </select>
                                                 </td>
                                                 <td>
@@ -274,9 +278,9 @@ else
     {
         _isNew = Id is null;
         await using var db = await Factory.CreateDbContextAsync();
-        _activeProducts.AddRange(await db.Products.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
+        _activeProducts.AddRange(await db.Products.Where(p => p.IsActive && p.DeletedAt == null).OrderBy(p => p.Name).ToListAsync());
         _productsById = await db.Products.ToDictionaryAsync(p => p.Id);
-        _customers = await db.Customers.OrderBy(c => c.Name).ToListAsync();
+        _customers = await db.Customers.Where(c => c.DeletedAt == null).OrderBy(c => c.Name).ToListAsync();
 
         if (Id is not null)
         {
@@ -360,6 +364,15 @@ else
 
     private void RemoveLine(int index) => _form.Lines.RemoveAt(index);
 
+    private IReadOnlyList<Product> DeletedReferencedProducts(int productId)
+    {
+        if (productId == 0) return [];
+        if (_activeProducts.Any(p => p.Id == productId)) return [];
+        if (_productsById.TryGetValue(productId, out var product) && product.DeletedAt is not null)
+            return [product];
+        return [];
+    }
+
     private IReadOnlyList<PrepScheduleLine> StartSummaries()
     {
         if (_form.DeliveryDate is null || _form.DeliveryTime is null)
@@ -429,6 +442,7 @@ else
         else
         {
             var existing = await db.Customers
+                .Where(c => c.DeletedAt == null)
                 .FirstOrDefaultAsync(c => c.Name.ToLower() == _form.CustomerName.Trim().ToLower());
             if (existing is not null)
             {

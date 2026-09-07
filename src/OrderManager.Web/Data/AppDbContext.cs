@@ -16,12 +16,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.Property(p => p.Name).IsRequired().HasMaxLength(120);
             e.Property(p => p.Price).HasColumnType("numeric(12,2)");
+            e.Property(p => p.DeletedAt).HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<Customer>(e =>
         {
             e.Property(c => c.Name).IsRequired().HasMaxLength(160);
             e.Property(c => c.Phone).HasMaxLength(40);
+            e.Property(c => c.DeletedAt).HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<Order>(e =>

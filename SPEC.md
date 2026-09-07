@@ -52,11 +52,12 @@ order-manager/
         │   │   ├── Orders.razor        → Lista de encargos
         │   │   ├── OrderEdit.razor     → Crear/editar encargo
         │   │   ├── Products.razor      → CRUD de productos
-        │   │   └── Customers.razor     → CRUD de clientes
+        │   │   ├── Customers.razor     → CRUD de clientes
+        │   │   └── Papelera.razor      → Restaurar clientes/productos eliminados
         │   └── Shared/
         ├── Data/                   → EF Core DbContext, migraciones
         ├── Models/                 → entidades
-        └── Services/               → lógica de negocio (cálculo de inicio de preparación)
+        └── Services/               → lógica de negocio (cálculo de inicio de preparación, soft/hard delete)
 ```
 
 ## Code Style
@@ -105,6 +106,9 @@ public static class PrepSchedule
       (`DeliveryAt - PrepHours`), resaltando los que ya pasaron la hora límite.
 - [ ] `dotnet test` pasa para la lógica de preparación.
 - [ ] Persistencia en Postgres (no en memoria).
+- [ ] Eliminación de clientes, productos y encargos con confirmación y aviso de impacto
+      (ver ADR-0003): soft-delete para clientes y productos (recuperables vía `/papelera`);
+      hard-delete para encargos no entregados; los encargos entregados no se pueden borrar.
 
 ## Open Questions / Asunciones
 
@@ -116,3 +120,7 @@ public static class PrepSchedule
 4. **Clientes**: tabla con nombre+teléfono; el form de encargo permite buscar o crear rápido.
 5. La app es single-user local (un solo propietario vía ASP.NET Core Identity). El `Monto cobrado` y la fecha/hora
    de entrega se capturan en el encargo; la hora de entrega es día **y** hora (ej. 08:00).
+6. **Eliminación**: cliente y producto son datos de referencia → soft-delete (columna `DeletedAt`,
+   recuperable desde `/papelera`); los encargos son eventos → hard-delete con borrado en cascada
+   de sus renglones, pero sólo si no están entregados. Los encargos entregados son inmutables
+   (no se eliminan). Ver ADR-0003 para el rationale.

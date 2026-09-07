@@ -42,6 +42,9 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<CustomerService>();
+builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<OrderService>();
 
 builder.Services.AddAuthorization(AuthorizationSetup.Configure);
 builder.Services.AddCascadingAuthenticationState();

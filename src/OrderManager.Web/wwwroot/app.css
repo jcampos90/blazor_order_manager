@@ -405,6 +405,21 @@ a {
     color: var(--on-accent);
 }
 
+.btn-danger {
+    background: var(--danger, #b1452d);
+    color: var(--on-accent, #fff);
+}
+
+.btn-danger:hover {
+    background: var(--danger-strong, #8d3621);
+    color: var(--on-accent, #fff);
+}
+
+.btn-ghost.btn-danger:hover {
+    background: color-mix(in srgb, var(--danger, #b1452d) 15%, transparent);
+    color: var(--danger, #b1452d);
+}
+
 .btn-sm {
     padding: .32rem .7rem;
     font-size: .82rem;

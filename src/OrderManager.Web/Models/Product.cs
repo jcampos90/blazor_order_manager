@@ -7,4 +7,5 @@ public class Product
     public int PrepHours { get; set; }
     public decimal Price { get; set; }
     public bool IsActive { get; set; } = true;
+    public DateTime? DeletedAt { get; set; }
 }

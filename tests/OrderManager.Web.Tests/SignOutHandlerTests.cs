@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
@@ -32,17 +33,27 @@ public class SignOutHandlerTests
         }
     }
 
+    private sealed class PassThroughAntiforgery : IAntiforgery
+    {
+        public AntiforgeryTokenSet GetAndStoreTokens(HttpContext httpContext) => new(null!, null!, null!, null!);
+        public AntiforgeryTokenSet GetTokens(HttpContext httpContext) => new(null!, null!, null!, null!);
+        public Task<bool> IsRequestValidAsync(HttpContext httpContext) => Task.FromResult(true);
+        public void SetCookieTokenAndHeader(HttpContext httpContext) { }
+        public Task ValidateRequestAsync(HttpContext httpContext) => Task.CompletedTask;
+    }
+
     private static async Task<(FakeAuthenticationService auth, DefaultHttpContext context)> ActAndBuild()
     {
         var fake = new FakeAuthenticationService();
         var services = new ServiceCollection();
         services.AddSingleton<IAuthenticationService>(fake);
+        services.AddSingleton<IAntiforgery>(new PassThroughAntiforgery());
         var provider = services.BuildServiceProvider();
 
         var context = new DefaultHttpContext();
         context.RequestServices = provider;
 
-        await SignOutHandler.SignOutAsync(context);
+        await SignOutHandler.SignOutAsync(context, provider.GetRequiredService<IAntiforgery>());
         return (fake, context);
     }
 

@@ -5,4 +5,5 @@ public class Customer
     public int Id { get; set; }
     public required string Name { get; set; }
     public string? Phone { get; set; }
+    public DateTime? DeletedAt { get; set; }
 }

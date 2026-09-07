@@ -1,0 +1,133 @@
+@page "/papelera"
+@rendermode InteractiveServer
+@inject CustomerService CustomerSvc
+@inject ProductService ProductSvc
+
+<PageTitle>Papelera</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Papelera</h1>
+        <p class="page-sub">Clientes y productos eliminados. Restaurá para volver a usarlos.</p>
+    </div>
+</div>
+
+<section class="card">
+    <div class="card-body">
+        <h2 class="card-title">Clientes eliminados</h2>
+        @if (_deletedCustomers.Count == 0)
+        {
+            <p class="table-muted m-0">No hay clientes eliminados.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Eliminado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in _deletedCustomers)
+                        {
+                            <tr>
+                                <td class="cell-strong">@c.Name</td>
+                                <td class="table-muted">@c.Phone</td>
+                                <td class="table-muted">@FormatDeleted(c.DeletedAt)</td>
+                                <td class="row-actions">
+                                    <button class="btn btn-sm btn-ghost" @onclick="() => RestoreCustomerAsync(c.Id)" title="Restaurar @c.Name">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M3 12a9 9 0 1 0 3-6.7" />
+                                            <path d="M3 4v5h5" />
+                                        </svg>
+                                        Restaurar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="card mt-3">
+    <div class="card-body">
+        <h2 class="card-title">Productos eliminados</h2>
+        @if (_deletedProducts.Count == 0)
+        {
+            <p class="table-muted m-0">No hay productos eliminados.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th class="num">Precio</th>
+                            <th class="num">Horas de prep.</th>
+                            <th>Eliminado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in _deletedProducts)
+                        {
+                            <tr>
+                                <td class="cell-strong">@p.Name</td>
+                                <td class="num">@p.Price.ToString("C")</td>
+                                <td class="num">@p.PrepHours</td>
+                                <td class="table-muted">@FormatDeleted(p.DeletedAt)</td>
+                                <td class="row-actions">
+                                    <button class="btn btn-sm btn-ghost" @onclick="() => RestoreProductAsync(p.Id)" title="Restaurar @p.Name">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M3 12a9 9 0 1 0 3-6.7" />
+                                            <path d="M3 4v5h5" />
+                                        </svg>
+                                        Restaurar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private List<Customer> _deletedCustomers = [];
+    private List<Product> _deletedProducts = [];
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var customers = await CustomerSvc.GetDeletedAsync();
+        _deletedCustomers = customers.ToList();
+        var products = await ProductSvc.GetDeletedAsync();
+        _deletedProducts = products.ToList();
+    }
+
+    private async Task RestoreCustomerAsync(int id)
+    {
+        await CustomerSvc.RestoreAsync(id);
+        await LoadAsync();
+    }
+
+    private async Task RestoreProductAsync(int id)
+    {
+        await ProductSvc.RestoreAsync(id);
+        await LoadAsync();
+    }
+
+    private static string FormatDeleted(DateTime? deletedAt) =>
+        deletedAt is null ? "" : deletedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+}
