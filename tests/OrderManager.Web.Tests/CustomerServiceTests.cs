@@ -82,24 +82,33 @@ public class CustomerServiceTests
     }
 
     [Fact]
-    public async Task RestoreAsync_NullsDeletedAt()
+    public async Task RestoreAsync_NullsDeletedAt_AndReappearsInActiveList()
     {
-        var dbName = nameof(RestoreAsync_NullsDeletedAt);
+        var dbName = nameof(RestoreAsync_NullsDeletedAt_AndReappearsInActiveList);
         await using (var db = CreateDb(dbName))
         {
             db.Customers.Add(new Customer { Name = "Ana", DeletedAt = DateTime.UtcNow });
+            db.Customers.Add(new Customer { Name = "Beto" });
             await db.SaveChangesAsync();
         }
 
         await using (var db2 = CreateDb(dbName))
         {
             var service = BuildService(dbName);
+            var beforeRestore = await service.GetActiveAsync();
+            Assert.DoesNotContain(beforeRestore, c => c.Name == "Ana");
+
             await service.RestoreAsync(1);
         }
 
         await using var db3 = CreateDb(dbName);
         var customer = await db3.Customers.AsNoTracking().FirstAsync(c => c.Id == 1);
         Assert.Null(customer.DeletedAt);
+
+        var service2 = BuildService(dbName);
+        var afterRestore = await service2.GetActiveAsync();
+        var names = afterRestore.Select(c => c.Name).OrderBy(n => n).ToArray();
+        Assert.Equal(new[] { "Ana", "Beto" }, names);
     }
 
     [Fact]
