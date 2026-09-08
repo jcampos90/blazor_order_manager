@@ -116,7 +116,7 @@ else
                                             <tr>
                                                 <td>
                                                     <select class="form-select form-control-sm" value="@line.ProductId"
-                                                            @onchange="e => SelectProductFromEvent(line, e)" aria-label="Producto">
+                                                            @onchange="e=> SelectProductFromEvent(line, e)" aria-label="Producto">
                                                         <option value="0">— seleccionar —</option>
                                                         @foreach (var p in _activeProducts)
                                                         {
@@ -138,7 +138,7 @@ else
                                                            value="@line.UnitPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                                            @oninput="e => line.UnitPrice = ParseQty(e.Value?.ToString())" aria-label="Precio unitario" />
                                                 </td>
-                                                <td class="num">@(line.Quantity * line.UnitPrice).ToString("C")</td>
+                                                <td class="num">@((line.Quantity * line.UnitPrice).ToString("C"))</td>
                                                 <td class="num">
                                                     <button type="button" class="btn btn-ghost btn-icon" @onclick="() => RemoveLine(lineIndex)"
                                                             aria-label="Quitar producto">
